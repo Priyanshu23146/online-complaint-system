@@ -13,10 +13,25 @@ datasource db {
 
 // This is our first Table blueprint ( Model )
 
+// (Upar ka generator aur datasource wala code same rehne dein)
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
-  password  String
-  createdAt DateTime @default(now())
+  id         Int         @id @default(autoincrement())
+  email      String      @unique
+  name       String
+  password   String
+  complaints Complaint[] // Nayi line: Ek user ki bohot saari complaints ho sakti hain
+}
+
+// Naya Table: Complaint
+model Complaint {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  status      String   @default("Pending") // By default complaint pending rahegi
+  createdAt   DateTime @default(now())
+  
+  // Relation: Kis user ne complaint ki hai?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
 }
