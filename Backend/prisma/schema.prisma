@@ -20,7 +20,8 @@ model User {
   email      String      @unique
   name       String
   password   String
-  complaints Complaint[] // Nayi line: Ek user ki bohot saari complaints ho sakti hain
+  role       String      @default("Student") // <-- NAYI LINE : By default sab "student" honge
+  complaints Complaint[]
 }
 
 // Naya Table: Complaint

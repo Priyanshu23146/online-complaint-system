@@ -136,7 +136,10 @@ const authenticateUser = (req: Request, res: Response, next: any) => {
       .json({ success: false, message: "Access Denied. No token provided." });
 
   try {
-    const verified = jwt.verify(token, JWT_SECRET);
+    const verified = jwt.verify(
+      token as string,
+      process.env.JWT_SECRET as string,
+    );
     (req as any).user = verified; // Token se user ID nikal kar request mein daal di
     next(); // Sab theek hai, aage badhne do
   } catch (error) {
@@ -163,13 +166,11 @@ app.post(
         },
       });
 
-      res
-        .status(201)
-        .json({
-          success: true,
-          message: "Complaint registered successfully",
-          complaint: newComplaint,
-        });
+      res.status(201).json({
+        success: true,
+        message: "Complaint registered successfully",
+        complaint: newComplaint,
+      });
     } catch (error) {
       console.error("Complaint Creation Error:", error);
       res.status(500).json({ success: false, message: "Server error" });
@@ -197,6 +198,52 @@ app.get(
 
       res.status(200).json({ success: true, complaints });
     } catch (error) {
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
+);
+
+// ==========================================
+// API 5: UPDATE COMPLAINT STATUS (Only for Admins)
+// ==========================================
+app.put(
+  "/api/complaints/:id/status",
+  authenticateUser,
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      // KAAM 1: URL se Complaint ki ID aur Body se naya Status nikalna
+      const complaintId = parseInt(req.params.id as string, 10);
+      const { status } = req.body;
+
+      // KAAM 2: Pehchan karna ki jo update karna chahta hai, wo hai kaun?
+      const userId = (req as any).user.id; // Ye id humare authenticateUser middleware ne di hai
+
+      // Database se us user ka poora data mangwate hain taaki uska 'role' check kar sakein
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      // KAAM 3: Security Check (Sirf Admin ko permission dena)
+      if (currentUser?.role !== "Admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Access Denied! Sirf Admin isey update kar sakte hain.",
+        });
+      }
+
+      // KAAM 4: Asli Update (Agar upar wala check pass ho gaya, toh complaint update karo)
+      const updatedComplaint = await prisma.complaint.update({
+        where: { id: complaintId },
+        data: { status: status }, // Status ko naye wale status se badal diya
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Complaint status updated successfully!",
+        updatedComplaint,
+      });
+    } catch (error) {
+      console.error("Status Update Error:", error);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
