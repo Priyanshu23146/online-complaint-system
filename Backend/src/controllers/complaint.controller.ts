@@ -14,13 +14,11 @@ export const createComplaint = async (
       data: { title, description, userId },
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Complaint registered successfully",
-        complaint: newComplaint,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Complaint registered successfully",
+      complaint: newComplaint,
+    });
   } catch (error) {
     console.error("Complaint Creation Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -28,21 +26,53 @@ export const createComplaint = async (
 };
 
 // 2. Get All Complaints
+// -----------------------------------------------------
+// GET ALL COMPLAINTS (With Pagination & Filtering)
+// -----------------------------------------------------
 export const getComplaints = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
+    // 1. URL se queries nikalna (e.g., ?page=1&limit=5&status=Pending)
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string;
+
+    // 2. Prisma ke liye skip calculate karna (Data ko tukdon mein baatna)
+    const skip = (page - 1) * limit;
+
+    // 3. Filter condition banana (agar frontend ne status bheja hai tabhi lagana)
+    const whereCondition = status ? { status: status } : {};
+
+    // 4. Database se limited data aur total count lana
     const complaints = await prisma.complaint.findMany({
+      where: whereCondition,
+      skip: skip,
+      take: limit, // Sirf limit jitna data hi uthayega
       include: { user: { select: { name: true, email: true } } },
       orderBy: { createdAt: "desc" },
     });
-    res.status(200).json({ success: true, complaints });
+
+    // Pata lagana ki database mein total kitni complaints hain
+    const totalComplaints = await prisma.complaint.count({
+      where: whereCondition,
+    });
+
+    res.status(200).json({
+      success: true,
+      metadata: {
+        totalComplaints,
+        currentPage: page,
+        totalPages: Math.ceil(totalComplaints / limit),
+      },
+      complaints,
+    });
   } catch (error) {
+    console.error("Fetch Complaints Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 // 3. Update Status (Admin)
 export const updateComplaintStatus = async (
   req: Request,
@@ -55,12 +85,10 @@ export const updateComplaintStatus = async (
 
     const currentUser = await prisma.user.findUnique({ where: { id: userId } });
     if (currentUser?.role !== "Admin") {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Access Denied! Sirf Admin isey update kar sakte hain.",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied! Sirf Admin isey update kar sakte hain.",
+      });
     }
 
     const updatedComplaint = await prisma.complaint.update({
@@ -68,13 +96,11 @@ export const updateComplaintStatus = async (
       data: { status },
     });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Complaint status updated successfully!",
-        updatedComplaint,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Complaint status updated successfully!",
+      updatedComplaint,
+    });
   } catch (error) {
     console.error("Status Update Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -92,13 +118,11 @@ export const deleteComplaint = async (
 
     const currentUser = await prisma.user.findUnique({ where: { id: userId } });
     if (currentUser?.role !== "Admin") {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message:
-            "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
-        });
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
+      });
     }
 
     const existingComplaint = await prisma.complaint.findUnique({

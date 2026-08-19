@@ -1,3 +1,4 @@
+import { errorHandler } from "./middlewares/error.middleware.js";
 import "dotenv/config";
 import express from "express";
 
@@ -18,6 +19,9 @@ app.use("/api/auth", authRoutes);
 
 // Complaints wale requests
 app.use("/api/complaints", complaintRoutes);
+
+// 🚨 YAHAN LAGANA HAI HAMARA SAFETY NET (Sab routes ke baad)
+app.use(errorHandler);
 
 // ==========================================
 // SERVER START

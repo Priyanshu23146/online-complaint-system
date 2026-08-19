@@ -1,10 +1,10 @@
 import express from "express";
-import authenticateUser from "../middlewares/auth.middleware.js";
-import { 
-  createComplaint, 
-  getComplaints, 
-  updateComplaintStatus, 
-  deleteComplaint 
+import { authenticateUser } from "../middlewares/auth.middleware.js";
+import {
+  createComplaint,
+  getComplaints,
+  updateComplaintStatus,
+  deleteComplaint,
 } from "../controllers/complaint.controller.js";
 
 const router = express.Router();
