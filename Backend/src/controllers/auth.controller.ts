@@ -1,7 +1,8 @@
 import { type Request, type Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { prisma } from "../config/db.js"; // Step 1 wala Prisma yahan aagaya!
+import { prisma } from "../config/db.js";
+import { registerSchema, loginSchema } from "../validators/auth.validator.js"; // 👈 Naya Zod Import
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_complaint_key_2026";
 
@@ -13,7 +14,20 @@ export const registerUser = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { email, name, password } = req.body;
+    // 🛡️ Bouncer Check: Kya data sahi format mein hai?
+    const validation = registerSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      // Agar data galat hai, toh yahi se error return kar do
+      return res.status(400).json({
+        success: false,
+        message: "Invalid input data",
+        errors: validation.error.format(), // Ye exact batayega ki email galat hai ya password
+      });
+    }
+
+    // Ab hum directly req.body use karne ke bajaye, safe validated data use karenge
+    const { email, name, password } = validation.data;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -47,7 +61,18 @@ export const registerUser = async (
 // -----------------------------------------------------
 export const loginUser = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { email, password } = req.body;
+    // 🛡️ Bouncer Check
+    const validation = loginSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid input data",
+        errors: validation.error.format(),
+      });
+    }
+
+    const { email, password } = validation.data;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
