@@ -30,6 +30,7 @@ model Complaint {
   title       String
   description String
   status      String   @default("Pending") // By default complaint pending rahegi
+  upvotes     Int      @default(0)
   createdAt   DateTime @default(now())
   
   // Relation: Kis user ne complaint ki hai?
