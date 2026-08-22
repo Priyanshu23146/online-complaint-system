@@ -1,23 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Shield } from "lucide-react";
+import API from "../api"; // 👈 API import kiya
 
 const Login: React.FC = () => {
   const location = useLocation();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
-  // Auto-switch based on URL query params from the Landing page
+  const [isAdmin, setIsAdmin] = useState(false);
+  // 👈 Naye states add kiye email aur password ke liye
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("role") === "admin") {
       setIsAdmin(true);
     }
   }, [location]);
-  const navigate = useNavigate();
+
+  // 👈 Asli Login Function
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Backend ko email/password bhej rahe hain
+      const { data } = await API.post("/auth/login", { email, password });
+
+      // Backend se jo token aaya, usko save kar liya
+      localStorage.setItem("token", data.token);
+
+      // Token save hone ke baad Dashboard par bhej diya
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Invalid Email or Password! Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        {/* Header Toggle */}
         <div className="flex w-full bg-slate-100 p-1">
           <button
             onClick={() => setIsAdmin(false)}
@@ -43,13 +70,8 @@ const Login: React.FC = () => {
             </p>
           </div>
 
-          <form
-            className="space-y-5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate("/dashboard");
-            }}
-          >
+          {/* 👈 Form onSubmit ab naya function call karega */}
+          <form className="space-y-5" onSubmit={handleLogin}>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Email Address
@@ -60,6 +82,9 @@ const Login: React.FC = () => {
                 </div>
                 <input
                   type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)} // 👈 State update
                   className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                   placeholder="name@example.com"
                 />
@@ -76,6 +101,9 @@ const Login: React.FC = () => {
                 </div>
                 <input
                   type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)} // 👈 State update
                   className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                   placeholder="••••••••"
                 />
@@ -84,9 +112,10 @@ const Login: React.FC = () => {
 
             <button
               type="submit"
+              disabled={loading}
               className={`w-full py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${isAdmin ? "bg-slate-800 hover:bg-slate-900 focus:ring-slate-900" : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"}`}
             >
-              Sign In
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 

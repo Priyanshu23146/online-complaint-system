@@ -1,10 +1,12 @@
 import { errorHandler } from "./middlewares/error.middleware.js";
 import "dotenv/config";
 import express from "express";
+import cors from "cors"; // 👈 Naya import
 // Routers import kar rahe hain
 import authRoutes from "./routes/auth.routes.js";
 import complaintRoutes from "./routes/complaint.routes.js";
 const app = express();
+app.use(cors()); // 👈 Security guard ko pass de diya
 app.use(express.json());
 const PORT = process.env.PORT || 5000;
 // ==========================================
