@@ -21,19 +21,41 @@ const Login: React.FC = () => {
   }, [location]);
 
   // 👈 Asli Login Function
+  // const handleLogin = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+
+  //   try {
+  //     // Backend ko email/password bhej rahe hain
+  //     const { data } = await API.post("/auth/login", { email, password });
+
+  //     // Backend se jo token aaya, usko save kar liya
+  //     localStorage.setItem("token", data.token);
+
+  //     // Token save hone ke baad Dashboard par bhej diya
+  //     navigate("/dashboard");
+  //   } catch (error) {
+  //     console.error("Login failed:", error);
+  //     alert("Invalid Email or Password! Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Backend ko email/password bhej rahe hain
       const { data } = await API.post("/auth/login", { email, password });
-
-      // Backend se jo token aaya, usko save kar liya
       localStorage.setItem("token", data.token);
 
-      // Token save hone ke baad Dashboard par bhej diya
-      navigate("/dashboard");
+      // 🚨 FIX: Agar Admin toggle on hai toh Admin Dashboard par bhejo
+      if (isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login failed:", error);
       alert("Invalid Email or Password! Please try again.");
