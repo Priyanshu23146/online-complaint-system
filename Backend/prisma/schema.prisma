@@ -1,18 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  
 }
 
-// -----------------------------------------------------
-// 1. ENUMS (Fix options taaki spelling mistake na ho)
-// -----------------------------------------------------
 enum Role {
   STUDENT
   DEPT_ADMIN
@@ -26,47 +19,42 @@ enum ComplaintStatus {
   REOPENED
 }
 
-// -----------------------------------------------------
-// 2. MODELS (Tables)
-// -----------------------------------------------------
-
-// Naya Table: Department (Jaise IT, Hostel, Library)
 model Department {
   id          Int         @id @default(autoincrement())
   name        String      @unique 
-  users       User[]      // Is department ke admins
-  complaints  Complaint[] // Is department ki complaints
+  users       User[]      
+  complaints  Complaint[] 
 }
 
-// Updated Table: User
 model User {
   id           Int         @id @default(autoincrement())
   email        String      @unique
   name         String
   password     String
-  role         Role        @default(STUDENT) // Ab String ki jagah Enum use hoga
+  role         Role        @default(STUDENT) 
   
-  // Naya Relation: Agar ye banda DeptAdmin hai, toh kis department ka hai?
-  departmentId Int?        // Optional (?) kyunki Student/SuperAdmin kisi ek department ke nahi hote
+  // 🎓 Naye College Fields
+  rollNo       String?     
+  branch       String?
+  year         String?     
+
+  departmentId Int?        
   department   Department? @relation(fields: [departmentId], references: [id])
   
   complaints   Complaint[]
 }
 
-// Updated Table: Complaint
 model Complaint {
   id           Int             @id @default(autoincrement())
   title        String
   description  String
-  status       ComplaintStatus @default(PENDING) // Ab String ki jagah Enum use hoga
+  status       ComplaintStatus @default(PENDING) 
   upvotes      Int             @default(0)
   createdAt    DateTime        @default(now())
   
-  // Relation: Kis user ne complaint ki hai?
   userId       Int
   user         User            @relation(fields: [userId], references: [id])
 
-  // Naya Relation: Yeh complaint kis department ko bheji gayi hai?
   departmentId Int
   department   Department      @relation(fields: [departmentId], references: [id])
 }
