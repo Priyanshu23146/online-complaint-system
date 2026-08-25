@@ -1,137 +1,221 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User as UserIcon } from "lucide-react";
+import {
+  User,
+  Mail,
+  Lock,
+  BookOpen,
+  GraduationCap,
+  Hash,
+  Rocket,
+} from "lucide-react";
+import API from "../api";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
+
+  // State for all form fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rollNo, setRollNo] = useState("");
+  const [branch, setBranch] = useState("CSE");
+  const [year, setYear] = useState("2nd Year");
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     setError("");
-    setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      // API Call to our updated backend
+      await API.post("/auth/register", {
+        name,
+        email,
+        password,
+        rollNo,
+        branch,
+        year,
       });
-      const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.message || "Unable to create account.");
-      }
-
-      navigate("/login", {
-        state: { message: "Account created successfully. Please log in." },
-      });
-    } catch (requestError) {
+      alert("Account created successfully! Please login.");
+      navigate("/login");
+    } catch (err: any) {
+      console.error("Signup failed:", err);
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to create account. Please try again.",
+        err.response?.data?.message || "Something went wrong! Try again.",
       );
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden p-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-slate-100">
+        {/* Header Section */}
         <div className="text-center mb-8">
+          <div className="bg-indigo-600 h-14 w-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
+            <Rocket className="h-8 w-8 text-white" />
+          </div>
           <h2 className="text-2xl font-bold text-slate-900">
-            Create an Account
+            Join the Campus Portal
           </h2>
           <p className="text-slate-500 mt-2 text-sm">
-            Join the community to raise and upvote issues
+            Register to raise, track, and upvote issues instantly.
           </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-5 border border-red-100 text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSignup} className="space-y-4">
+          {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Full Name
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <UserIcon className="h-5 w-5 text-slate-400" />
-              </div>
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
+                required
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                placeholder="Priyanshu Kumar"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="John Doe"
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Email Address
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-slate-400" />
+          {/* Email & Password (Grid Layout) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="student@aitd.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="name@example.com"
-              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-slate-400" />
+          {/* Academic Details Section */}
+          <div className="pt-4 mt-2 border-t border-slate-100">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+              Academic Details
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Roll No */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Roll Number
+                </label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none"
+                    placeholder="e.g. 23001"
+                    value={rollNo}
+                    onChange={(e) => setRollNo(e.target.value)}
+                  />
+                </div>
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                minLength={6}
-                required
-                className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                placeholder="••••••••"
-              />
+
+              {/* Branch */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Branch
+                </label>
+                <div className="relative">
+                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                  >
+                    <option value="CSE">Computer Science</option>
+                    <option value="IT">Information Tech</option>
+                    <option value="ECE">Electronics (ECE)</option>
+                    <option value="EE">Electrical (EE)</option>
+                    <option value="ME">Mechanical</option>
+                    <option value="CE">Civil</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Year */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Year
+                </label>
+                <div className="relative">
+                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                  >
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={loading}
+            className="w-full py-3 mt-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg font-medium transition shadow-md"
           >
-            {isSubmitting ? "Creating Account..." : "Sign Up"}
+            {loading ? "Creating Account..." : "Sign Up as Student"}
           </button>
         </form>
 
-        {error && (
-          <p className="mt-4 text-center text-sm text-red-600">{error}</p>
-        )}
-
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="text-center text-slate-500 mt-6 text-sm">
           Already have an account?{" "}
           <Link
             to="/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500 transition"
+            className="text-indigo-600 font-semibold hover:underline"
           >
-            Log in
+            Login here
           </Link>
         </p>
       </div>
