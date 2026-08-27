@@ -6,7 +6,6 @@ import { prisma } from "../config/db.js";
 // 🚀 REGISTER API
 export const register = async (req: Request, res: Response): Promise<any> => {
   try {
-    // Frontend se aane wale naye fields yahan receive ho rahe hain
     const { name, email, password, rollNo, branch, year } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -23,9 +22,9 @@ export const register = async (req: Request, res: Response): Promise<any> => {
         name,
         email,
         password: hashedPassword,
-        rollNo, // Naya field save ho raha hai
-        branch, // Naya field save ho raha hai
-        year, // Naya field save ho raha hai
+        rollNo,
+        branch,
+        year,
       },
     });
 
@@ -81,6 +80,8 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        // @ts-ignore
+        mustChangePassword: user.mustChangePassword,
       },
     });
   } catch (error) {
@@ -88,5 +89,39 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     res
       .status(500)
       .json({ success: false, message: "Server error during login" });
+  }
+}; // 👈 Login function yahan proper close ho gaya
+
+// 🚀 FORCE CHANGE PASSWORD API (Ab ye ekdum bahar aur sahi jagah par hai)
+export const forceChangePassword = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
+  try {
+    const { email, newPassword } = req.body;
+
+    // 1. Naya password hash karein
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // 2. Database mein user ka password update karein aur flag ko 'false' kar dein
+    await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+        mustChangePassword: false, // 🚀 Security lock khul gaya!
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Password updated successfully! You can now access the dashboard.",
+    });
+  } catch (error) {
+    console.error("Password Update Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating password",
+    });
   }
 };
