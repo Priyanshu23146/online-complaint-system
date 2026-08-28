@@ -100,7 +100,7 @@ export const forceChangePassword = async (
   try {
     const { email, newPassword } = req.body;
 
-    // 1. Naya password hash karein
+    // 1. Naya password hash karne ke liye function
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // 2. Database mein user ka password update karein aur flag ko 'false' kar dein
