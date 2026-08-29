@@ -1,3 +1,4 @@
+import departmentRoutes from "./routes/department.routes.js"; // 👈 Naya Import
 import { errorHandler } from "./middlewares/error.middleware.js";
 import "dotenv/config";
 import express from "express";
@@ -19,6 +20,8 @@ const PORT = process.env.PORT || 5000;
 // ==========================================
 // Authentication wale requests
 app.use("/api/auth", authRoutes);
+
+app.use("/api/departments", departmentRoutes); // 👈 Naya Route
 
 // Complaints wale requests
 app.use("/api/complaints", complaintRoutes);

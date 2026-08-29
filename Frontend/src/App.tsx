@@ -1,3 +1,4 @@
+import SuperAdmin from "./pages/SuperAdmin";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -16,6 +17,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/super-secret" element={<SuperAdmin />} />
       </Routes>
     </Router>
   );

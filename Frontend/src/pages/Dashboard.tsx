@@ -19,53 +19,79 @@ import {
   BookOpen,
   CalendarCheck,
   Check,
+  ShieldCheck,
+  PlusCircle,
+  UserPlus,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // Link hata diya error fix karne ke liye
+import { useNavigate } from "react-router-dom";
 import API from "../api";
-
-interface Complaint {
-  id: number | string;
-  title: string;
-  status: string;
-  upvotes: number;
-}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [activeTab, setActiveTab] = useState(
+    currentUser.role !== "STUDENT" ? "admin" : "dashboard",
+  );
+  const [complaints, setComplaints] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  // 🚀 NAYA: Department select karne ke liye state
-  const [selectedDept, setSelectedDept] = useState("1");
+  const [selectedDept, setSelectedDept] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [newDeptName, setNewDeptName] = useState("");
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+
   useEffect(() => {
-    const fetchComplaints = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await API.get("/complaints");
-        if (data && data.complaints) {
-          const formattedComplaints = data.complaints.map((c: any) => ({
-            ...c,
-            status: c.status || "Pending",
-            upvotes: c.upvotes || 0,
-          }));
-          setComplaints(formattedComplaints);
-        } else {
-          setComplaints([]);
+        const compRes = await API.get("/complaints");
+        if (compRes.data && compRes.data.complaints) {
+          setComplaints(compRes.data.complaints);
+        }
+        const deptRes = await API.get("/departments");
+        if (deptRes.data && deptRes.data.departments) {
+          setDepartments(deptRes.data.departments);
+          if (deptRes.data.departments.length > 0) {
+            setSelectedDept(deptRes.data.departments[0].id.toString());
+          }
         }
       } catch (error) {
-        console.error("Error fetching complaints:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchComplaints();
+    fetchData();
   }, []);
+
+  const handleCreateComplaint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !selectedDept) return;
+    setIsSubmitting(true);
+    try {
+      const { data } = await API.post("/complaints", {
+        title: newTitle,
+        description: newTitle,
+        departmentId: parseInt(selectedDept),
+      });
+      if (data && data.complaint) {
+        setComplaints([
+          { ...data.complaint, status: "Pending", upvotes: 0 },
+          ...complaints,
+        ]);
+      }
+      setNewTitle("");
+      setIsModalOpen(false);
+    } catch (error) {
+      alert("Error creating complaint!");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleUpvote = async (id: number | string) => {
     setComplaints(
@@ -76,41 +102,29 @@ const Dashboard: React.FC = () => {
     try {
       await API.post(`/complaints/${id}/upvote`);
     } catch (error) {
-      console.error("Upvote failed:", error);
+      console.error("Upvote failed");
     }
   };
 
-  const handleCreateComplaint = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-    setIsSubmitting(true);
+  const handleCreateDepartment = async () => {
+    if (!newDeptName.trim()) return;
+    setIsCreatingDept(true);
     try {
-      // 🚀 NAYA: Ab hardcode '1' ki jagah student ka selected department jayega
-      const { data } = await API.post("/complaints", {
-        title: newTitle,
-        description: newTitle,
-        departmentId: parseInt(selectedDept),
-      });
-
-      if (data && data.complaint) {
-        setComplaints([
-          { ...data.complaint, status: "Pending", upvotes: 0 },
-          ...complaints,
-        ]);
+      const { data } = await API.post("/departments", { name: newDeptName });
+      if (data.success) {
+        setDepartments([...departments, data.department]);
+        setNewDeptName("");
       }
-      setNewTitle("");
-      setSelectedDept("1"); // Form reset
-      setIsModalOpen(false);
     } catch (error) {
-      console.error("Failed to create complaint:", error);
-      alert("Error creating complaint!");
+      alert("Failed to create department");
     } finally {
-      setIsSubmitting(false);
+      setIsCreatingDept(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/login");
   };
 
@@ -121,7 +135,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* 📌 SIDEBAR NAVIGATION */}
+      {/* 📌 SIDEBAR */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shadow-2xl z-10">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -160,6 +174,15 @@ const Dashboard: React.FC = () => {
           >
             <BookOpen className="h-5 w-5" /> Academic Vault
           </button>
+
+          {currentUser.role !== "STUDENT" && (
+            <button
+              onClick={() => setActiveTab("admin")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mt-4 border border-indigo-500/30 ${activeTab === "admin" ? "bg-indigo-700 text-white" : "text-indigo-400 hover:bg-slate-800 hover:text-white"}`}
+            >
+              <ShieldCheck className="h-5 w-5" /> Admin Controls
+            </button>
+          )}
         </nav>
 
         <div className="p-4 border-t border-slate-800">
@@ -172,7 +195,7 @@ const Dashboard: React.FC = () => {
         </div>
       </aside>
 
-      {/* 📌 MAIN CONTENT AREA */}
+      {/* 📌 MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto p-8">
         {/* ---------------- SECTION 1: COMPLAINTS ---------------- */}
         {activeTab === "dashboard" && (
@@ -214,7 +237,7 @@ const Dashboard: React.FC = () => {
                             ) : (
                               <Clock className="h-4 w-4" />
                             )}
-                            {complaint.status}
+                            {complaint.status || "Pending"}
                           </span>
                         </div>
                       </div>
@@ -224,7 +247,7 @@ const Dashboard: React.FC = () => {
                       >
                         <ThumbsUp className="h-5 w-5 group-hover:-translate-y-1 transition-transform" />
                         <span className="font-bold mt-1">
-                          {complaint.upvotes}
+                          {complaint.upvotes || 0}
                         </span>
                       </button>
                     </div>
@@ -275,77 +298,100 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ---------------- SECTION 2: ATTENDANCE (MOCKUP) ---------------- */}
+        {/* ---------------- SECTION 2,3,4: MOCKUPS ---------------- */}
         {activeTab === "attendance" && (
           <div className="max-w-5xl mx-auto space-y-6">
             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <CalendarCheck className="h-7 w-7 text-indigo-600" /> Attendance
               Overview
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-indigo-600 text-white p-6 rounded-xl shadow-sm">
-                <p className="text-indigo-100 text-sm font-medium">
-                  Overall Attendance
-                </p>
-                <h3 className="text-4xl font-bold mt-2">82%</h3>
-                <p className="text-sm mt-2 flex items-center gap-1 opacity-90">
-                  <Check className="h-4 w-4" /> Above 75% Criteria
-                </p>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <p className="text-slate-500 text-sm font-medium">
-                  Total Classes Held
-                </p>
-                <h3 className="text-3xl font-bold text-slate-800 mt-2">124</h3>
-              </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <p className="text-slate-500 text-sm font-medium">
-                  Classes Attended
-                </p>
-                <h3 className="text-3xl font-bold text-slate-800 mt-2">102</h3>
-              </div>
+            <div className="bg-indigo-600 text-white p-6 rounded-xl shadow-sm w-max">
+              <p className="text-indigo-100 text-sm font-medium">
+                Overall Attendance
+              </p>
+              <h3 className="text-4xl font-bold mt-2">82%</h3>
+              <p className="text-sm mt-2 flex items-center gap-1 opacity-90">
+                <Check className="h-4 w-4" /> Above 75% Criteria
+              </p>
             </div>
           </div>
         )}
 
-        {/* ---------------- SECTION 3: NOTICE BOARD (MOCKUP) ---------------- */}
         {activeTab === "notices" && (
           <div className="max-w-4xl mx-auto space-y-6">
             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Bell className="h-7 w-7 text-indigo-600" /> Digital Notice Board
+              <Bell className="h-7 w-7 text-indigo-600" /> Notice Board
             </h2>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-6 border-b border-slate-100 hover:bg-slate-50 transition">
-                <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wide">
-                  Urgent
-                </span>
-                <h3 className="text-xl font-semibold text-slate-900 mt-2">
-                  Hack AITD 2026 Finale Guidelines
-                </h3>
-                <p className="text-slate-600 mt-2 text-sm">
-                  All selected participants must report to the New Seminar Hall
-                  by 9:00 AM on Feb 23, 2026.
-                </p>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ---------------- SECTION 4: ACADEMIC VAULT (MOCKUP) ---------------- */}
         {activeTab === "vault" && (
           <div className="max-w-5xl mx-auto space-y-6">
             <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <BookOpen className="h-7 w-7 text-indigo-600" /> Academic Vault
             </h2>
-            <p className="text-slate-500">
-              Access notes, PYQs, and assignments specific to your branch and
-              year.
-            </p>
+          </div>
+        )}
+
+        {/* ---------------- SECTION 5: ADMIN CONTROLS ---------------- */}
+        {activeTab === "admin" && (
+          <div className="max-w-4xl mx-auto space-y-6">
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <ShieldCheck className="h-7 w-7 text-indigo-600" /> Admin Control
+              Panel
+            </h2>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">
+                Create New Department
+              </h3>
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={newDeptName}
+                  onChange={(e) => setNewDeptName(e.target.value)}
+                  placeholder="e.g. Mechanical Dept, IT Infrastructure"
+                  className="flex-1 rounded-lg border border-slate-300 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                <button
+                  onClick={handleCreateDepartment}
+                  disabled={isCreatingDept || !newDeptName}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2"
+                >
+                  <PlusCircle className="h-5 w-5" /> Add
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">
+                Active Departments
+              </h3>
+              {departments.length === 0 ? (
+                <p className="text-slate-500">No departments created yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {departments.map((dept) => (
+                    <div
+                      key={dept.id}
+                      className="flex items-center justify-between p-4 border border-slate-100 bg-slate-50 rounded-lg"
+                    >
+                      <span className="font-semibold text-slate-700">
+                        {dept.name}
+                      </span>
+                      <button className="text-sm flex items-center gap-1 bg-white border border-slate-300 px-3 py-1.5 rounded-md hover:bg-indigo-50 hover:text-indigo-600 transition font-medium">
+                        <UserPlus className="h-4 w-4" /> Assign Admin
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
 
-      {/* 🚀 UPDATED COMPLAINT MODAL (DEPARTMENT DROPDOWN ADDED) */}
+      {/* 🚀 COMPLAINT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -353,28 +399,30 @@ const Dashboard: React.FC = () => {
               <h3 className="text-xl font-bold text-slate-900">
                 Raise a Complaint
               </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-6 w-6" />
+              <button onClick={() => setIsModalOpen(false)}>
+                <X className="h-6 w-6 text-slate-400" />
               </button>
             </div>
 
             <form onSubmit={handleCreateComplaint}>
-              {/* NAYA: Department Dropdown */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Select Department
                 </label>
                 <select
-                  className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                  className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
+                  required
                 >
-                  <option value="1">IT Department</option>
-                  <option value="2">Hostel / Campus Management</option>
-                  <option value="3">Library / Academics</option>
+                  <option value="" disabled>
+                    Select a department
+                  </option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -385,7 +433,6 @@ const Dashboard: React.FC = () => {
                 <textarea
                   required
                   rows={3}
-                  placeholder="e.g., Lab 2 Wi-Fi is down..."
                   className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
@@ -395,7 +442,7 @@ const Dashboard: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg font-medium transition shadow-md"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium"
               >
                 {isSubmitting ? "Submitting..." : "Submit Issue"}
               </button>
