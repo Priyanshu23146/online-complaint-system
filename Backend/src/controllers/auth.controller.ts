@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { type Request, type Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -123,5 +124,49 @@ export const forceChangePassword = async (
       success: false,
       message: "Server error while updating password",
     });
+  }
+};
+// 🚀 SUPER ADMIN: ONBOARD NEW CLIENT/ADMIN
+export const onboardClient = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
+  try {
+    const { name, email, role } = req.body;
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists!" });
+    }
+
+    // 1. Generate a random secure 8-character password
+    const tempPassword = crypto.randomBytes(4).toString("hex");
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // 2. Create the Admin user with the security lock ON
+    const newAdmin = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: role || "DEPT_ADMIN",
+        mustChangePassword: true, // 🚀 Security lock ON
+      },
+    });
+
+    // 3. Send the plain password in response (to show on the Super Admin screen)
+    res.status(201).json({
+      success: true,
+      message: "Admin created successfully!",
+      adminEmail: newAdmin.email,
+      tempPassword: tempPassword,
+    });
+  } catch (error) {
+    console.error("Onboarding Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during onboarding" });
   }
 };

@@ -1,158 +1,115 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Shield } from "lucide-react";
-import API from "../api"; // 👈 API import kiya
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, LogIn } from "lucide-react";
+import API from "../api";
 
 const Login: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const [isAdmin, setIsAdmin] = useState(false);
-  // 👈 Naye states add kiye email aur password ke liye
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("role") === "admin") {
-      setIsAdmin(true);
-    }
-  }, [location]);
-
-  // 👈 Asli Login Function
-  // const handleLogin = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-
-  //   try {
-  //     // Backend ko email/password bhej rahe hain
-  //     const { data } = await API.post("/auth/login", { email, password });
-
-  //     // Backend se jo token aaya, usko save kar liya
-  //     localStorage.setItem("token", data.token);
-
-  //     // Token save hone ke baad Dashboard par bhej diya
-  //     navigate("/dashboard");
-  //   } catch (error) {
-  //     console.error("Login failed:", error);
-  //     alert("Invalid Email or Password! Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       const { data } = await API.post("/auth/login", { email, password });
-      localStorage.setItem("token", data.token);
 
-      // 🚨 FIX: Agar Admin toggle on hai toh Admin Dashboard par bhejo
-      if (isAdmin) {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
+      if (data.success) {
+        // 1. Token aur User Data save karo
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // 2. 🚀 THE SMART REDIRECTION
+        if (data.user.mustChangePassword) {
+          navigate("/set-password"); // Security lock open karo
+        } else {
+          navigate("/dashboard"); // Seedha andar jao
+        }
       }
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Invalid Email or Password! Please try again.");
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(err.response?.data?.message || "Invalid credentials!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        <div className="flex w-full bg-slate-100 p-1">
-          <button
-            onClick={() => setIsAdmin(false)}
-            className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${!isAdmin ? "bg-white shadow-sm text-indigo-700" : "text-slate-500 hover:text-slate-700"}`}
-          >
-            <User className="h-4 w-4" /> User
-          </button>
-          <button
-            onClick={() => setIsAdmin(true)}
-            className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 transition-all ${isAdmin ? "bg-slate-800 shadow-sm text-white" : "text-slate-500 hover:text-slate-700"}`}
-          >
-            <Shield className="h-4 w-4" /> Admin
-          </button>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+        <div className="text-center mb-8">
+          <div className="bg-indigo-600 h-14 w-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
+            <LogIn className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900">Welcome Back</h2>
+          <p className="text-slate-500 mt-2 text-sm">
+            Sign in to track issues and manage campus activities.
+          </p>
         </div>
 
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">
-              {isAdmin ? "Admin Portal" : "Welcome Back"}
-            </h2>
-            <p className="text-slate-500 mt-2 text-sm">
-              Please enter your details to sign in
-            </p>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-5 text-center border border-red-100">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <input
+                type="email"
+                required
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="admin@aitd.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
           </div>
 
-          {/* 👈 Form onSubmit ab naya function call karega */}
-          <form className="space-y-5" onSubmit={handleLogin}>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)} // 👈 State update
-                  className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                  placeholder="name@example.com"
-                />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <input
+                type="password"
+                required
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)} // 👈 State update
-                  className="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 mt-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg font-medium transition shadow-md"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${isAdmin ? "bg-slate-800 hover:bg-slate-900 focus:ring-slate-900" : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"}`}
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-
-          {!isAdmin && (
-            <p className="mt-6 text-center text-sm text-slate-500">
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                className="font-medium text-indigo-600 hover:text-indigo-500 transition"
-              >
-                Sign up
-              </Link>
-            </p>
-          )}
-        </div>
+        <p className="text-center text-slate-500 mt-6 text-sm">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-indigo-600 font-semibold hover:underline"
+          >
+            Register here
+          </Link>
+        </p>
       </div>
     </div>
   );
