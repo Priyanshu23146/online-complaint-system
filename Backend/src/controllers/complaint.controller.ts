@@ -7,11 +7,23 @@ export const createComplaint = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { title, description } = req.body;
+    // 🚀 FIX 1: Frontend se departmentId nikalna
+    const { title, description, departmentId } = req.body;
     const userId = (req as any).user.id;
 
+    if (!departmentId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Department is required" });
+    }
+
     const newComplaint = await prisma.complaint.create({
-      data: { title, description, userId },
+      data: {
+        title,
+        description,
+        userId,
+        departmentId: Number(departmentId), // Number mein convert kiya
+      },
     });
 
     res.status(201).json({
@@ -26,35 +38,28 @@ export const createComplaint = async (
 };
 
 // 2. Get All Complaints
-// -----------------------------------------------------
-// GET ALL COMPLAINTS (With Pagination & Filtering)
-// -----------------------------------------------------
 export const getComplaints = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    // 1. URL se queries nikalna (e.g., ?page=1&limit=5&status=Pending)
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
 
-    // 2. Prisma ke liye skip calculate karna (Data ko tukdon mein baatna)
     const skip = (page - 1) * limit;
 
-    // 3. Filter condition banana (agar frontend ne status bheja hai tabhi lagana)
-    const whereCondition = status ? { status: status } : {};
+    // 🚀 FIX 2 & 3: Prisma Enum error hatane ke liye 'any' typecast kiya
+    const whereCondition: any = status ? { status: status } : {};
 
-    // 4. Database se limited data aur total count lana
     const complaints = await prisma.complaint.findMany({
       where: whereCondition,
       skip: skip,
-      take: limit, // Sirf limit jitna data hi uthayega
+      take: limit,
       include: { user: { select: { name: true, email: true } } },
       orderBy: { createdAt: "desc" },
     });
 
-    // Pata lagana ki database mein total kitni complaints hain
     const totalComplaints = await prisma.complaint.count({
       where: whereCondition,
     });
@@ -73,6 +78,7 @@ export const getComplaints = async (
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // 3. Update Status (Admin)
 export const updateComplaintStatus = async (
   req: Request,
@@ -84,7 +90,9 @@ export const updateComplaintStatus = async (
     const userId = (req as any).user.id;
 
     const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (currentUser?.role !== "Admin") {
+
+    // 🚀 FIX 4: "Admin" role ab exist nahi karta, STUDENT check karenge
+    if (currentUser?.role === "STUDENT") {
       return res.status(403).json({
         success: false,
         message: "Access Denied! Sirf Admin isey update kar sakte hain.",
@@ -117,7 +125,9 @@ export const deleteComplaint = async (
     const userId = (req as any).user.id;
 
     const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (currentUser?.role !== "Admin") {
+
+    // 🚀 FIX 5: Role check fix kiya
+    if (currentUser?.role === "STUDENT") {
       return res.status(403).json({
         success: false,
         message:

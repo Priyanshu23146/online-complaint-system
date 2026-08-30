@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   PlusCircle,
   UserPlus,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
@@ -37,13 +38,26 @@ const Dashboard: React.FC = () => {
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 🚀 Complaint Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 🚀 Admin Panel (Create Dept) States
   const [newDeptName, setNewDeptName] = useState("");
   const [isCreatingDept, setIsCreatingDept] = useState(false);
+
+  // 🚀 Assign Admin Modal States
+  const [isAssignAdminOpen, setIsAssignAdminOpen] = useState(false);
+  const [adminDeptId, setAdminDeptId] = useState<number | null>(null);
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [generatedCreds, setGeneratedCreds] = useState<{
+    email: string;
+    pass: string;
+  } | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,6 +136,49 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleDeleteDepartment = async (id: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this department?",
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await API.delete(`/departments/${id}`);
+      setDepartments(departments.filter((dept) => dept.id !== id));
+    } catch (error: any) {
+      alert(
+        error.response?.data?.message ||
+          "Failed to delete department. Maybe it has active complaints?",
+      );
+    }
+  };
+
+  const handleAssignAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminDeptId) return;
+
+    setIsAssigning(true);
+    try {
+      const { data } = await API.post(
+        `/departments/${adminDeptId}/assign-admin`,
+        {
+          name: adminName,
+          email: adminEmail,
+        },
+      );
+
+      if (data.success) {
+        setGeneratedCreds({ email: data.adminEmail, pass: data.tempPassword });
+        setAdminName("");
+        setAdminEmail("");
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Failed to assign admin");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -163,9 +220,6 @@ const Dashboard: React.FC = () => {
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "notices" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
           >
             <Bell className="h-5 w-5" /> Notice Board
-            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              New
-            </span>
           </button>
 
           <button
@@ -341,6 +395,7 @@ const Dashboard: React.FC = () => {
               Panel
             </h2>
 
+            {/* CREATE DEPT */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
               <h3 className="text-lg font-bold text-slate-800 mb-4">
                 Create New Department
@@ -363,6 +418,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* LIST DEPTS */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
               <h3 className="text-lg font-bold text-slate-800 mb-4">
                 Active Departments
@@ -379,9 +435,27 @@ const Dashboard: React.FC = () => {
                       <span className="font-semibold text-slate-700">
                         {dept.name}
                       </span>
-                      <button className="text-sm flex items-center gap-1 bg-white border border-slate-300 px-3 py-1.5 rounded-md hover:bg-indigo-50 hover:text-indigo-600 transition font-medium">
-                        <UserPlus className="h-4 w-4" /> Assign Admin
-                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {/* 🚀 THE WORKING ASSIGN BUTTON */}
+                        <button
+                          onClick={() => {
+                            setAdminDeptId(dept.id);
+                            setGeneratedCreds(null);
+                            setIsAssignAdminOpen(true);
+                          }}
+                          className="text-sm flex items-center gap-1 bg-white border border-slate-300 px-3 py-1.5 rounded-md hover:bg-indigo-50 hover:text-indigo-600 transition font-medium"
+                        >
+                          <UserPlus className="h-4 w-4" /> Assign
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteDepartment(dept.id)}
+                          className="text-sm flex items-center gap-1 bg-white border border-red-200 text-red-600 px-3 py-1.5 rounded-md hover:bg-red-50 hover:border-red-300 transition font-medium shadow-sm"
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -393,7 +467,7 @@ const Dashboard: React.FC = () => {
 
       {/* 🚀 COMPLAINT MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-xl font-bold text-slate-900">
@@ -447,6 +521,93 @@ const Dashboard: React.FC = () => {
                 {isSubmitting ? "Submitting..." : "Submit Issue"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🚀 ASSIGN ADMIN MODAL */}
+      {isAssignAdminOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-5 border-b pb-4">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <UserPlus className="h-6 w-6 text-indigo-600" /> Assign Dept
+                Admin
+              </h3>
+              <button
+                onClick={() => setIsAssignAdminOpen(false)}
+                className="text-slate-400 hover:text-red-500 transition"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {generatedCreds ? (
+              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl text-center">
+                <h4 className="text-emerald-700 font-bold mb-2 flex items-center justify-center gap-2">
+                  <CheckCircle className="h-5 w-5" /> Admin Created!
+                </h4>
+                <p className="text-sm text-slate-600 mb-4">
+                  Share these login credentials securely.
+                </p>
+                <div className="bg-slate-900 p-4 rounded-lg font-mono text-sm text-slate-300 text-left">
+                  <div>
+                    Email:{" "}
+                    <span className="text-white">{generatedCreds.email}</span>
+                  </div>
+                  <div className="mt-2">
+                    Pass:{" "}
+                    <span className="text-amber-400 font-bold">
+                      {generatedCreds.pass}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAssignAdminOpen(false)}
+                  className="mt-5 w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleAssignAdmin}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Admin Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="e.g. Dr. Ramesh"
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Admin Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="ramesh@aitd.edu"
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isAssigning}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition shadow-md"
+                >
+                  {isAssigning
+                    ? "Generating System..."
+                    : "Create Admin & Get Password"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
