@@ -7,43 +7,42 @@ import { prisma } from "../config/db.js";
 // 🚀 REGISTER API
 export const register = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, email, password, rollNo, branch, year } = req.body;
+    const { name, email, password, role } = req.body;
 
+    // 1. Check if user exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
+    if (existingUser)
       return res
         .status(400)
-        .json({ success: false, message: "User already exists" });
-    }
+        .json({ success: false, message: "Email already in use" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await prisma.user.create({
+    // 2. 🚀 SAAS LOGIC: Check if default Organization exists, if not, create it
+    let org = await prisma.organization.findFirst();
+    if (!org) {
+      org = await prisma.organization.create({
+        data: { name: "AITD Kanpur", domain: "@aitd.edu" },
+      });
+    }
+
+    // 3. Create User and link to the Organization
+    const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        rollNo,
-        branch,
-        year,
+        role: role || "STUDENT",
+        organizationId: org.id, // 🚀 Naya SaaS rule
       },
     });
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-      },
-    });
-  } catch (error) {
-    console.error("Signup Error:", error);
     res
-      .status(500)
-      .json({ success: false, message: "Server error during registration" });
+      .status(201)
+      .json({ success: true, message: "User registered successfully!" });
+  } catch (error) {
+    console.error("Register Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -81,7 +80,6 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         name: user.name,
         email: user.email,
         role: user.role,
-        // @ts-ignore
         mustChangePassword: user.mustChangePassword,
       },
     });
@@ -91,9 +89,9 @@ export const login = async (req: Request, res: Response): Promise<any> => {
       .status(500)
       .json({ success: false, message: "Server error during login" });
   }
-}; // 👈 Login function yahan proper close ho gaya
+};
 
-// 🚀 FORCE CHANGE PASSWORD API (Ab ye ekdum bahar aur sahi jagah par hai)
+// 🚀 FORCE CHANGE PASSWORD API
 export const forceChangePassword = async (
   req: Request,
   res: Response,
@@ -126,6 +124,7 @@ export const forceChangePassword = async (
     });
   }
 };
+
 // 🚀 SUPER ADMIN: ONBOARD NEW CLIENT/ADMIN
 export const onboardClient = async (
   req: Request,
@@ -145,18 +144,27 @@ export const onboardClient = async (
     const tempPassword = crypto.randomBytes(4).toString("hex");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-    // 2. Create the Admin user with the security lock ON
+    // 🚀 SAAS LOGIC: Get or create organization for the admin
+    let org = await prisma.organization.findFirst();
+    if (!org) {
+      org = await prisma.organization.create({
+        data: { name: "AITD Kanpur", domain: "@aitd.edu" },
+      });
+    }
+
+    // 2. Create the Admin user with the security lock ON and linked to Organization
     const newAdmin = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role: role || "DEPT_ADMIN",
-        mustChangePassword: true, // 🚀 Security lock ON
+        organizationId: org.id, // 🚀 Fixed SaaS linkage
+        mustChangePassword: true,
       },
     });
 
-    // 3. Send the plain password in response (to show on the Super Admin screen)
+    // 3. Send the plain password in response
     res.status(201).json({
       success: true,
       message: "Admin created successfully!",

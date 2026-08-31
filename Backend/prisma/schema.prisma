@@ -4,60 +4,79 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-enum Role {
-  STUDENT
-  DEPT_ADMIN
-  SUPER_ADMIN
+model Organization {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  domain        String?        @unique // e.g., "@aitd.edu" to auto-assign users
+  createdAt     DateTime       @default(now())
+  
+  users         User[]
+  departments   Department[]
+  subscriptions Subscription[]
 }
 
-enum ComplaintStatus {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
-  REOPENED
+model Subscription {
+  id             Int          @id @default(autoincrement())
+  plan           String       @default("FREE") // PRO, ENTERPRISE
+  status         String       @default("ACTIVE") // PAST_DUE, CANCELED
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model Department {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique 
-  users       User[]      
-  complaints  Complaint[] 
+  id             Int          @id @default(autoincrement())
+  name           String
+  organizationId Int
+  
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  users          User[]
+  complaints     Complaint[]
 }
 
 model User {
-  id                 Int         @id @default(autoincrement())
-  email              String      @unique
+  id                 Int          @id @default(autoincrement())
   name               String
+  email              String       @unique
   password           String
-  role               Role        @default(STUDENT) 
+  role               String       @default("STUDENT") // ORG_ADMIN, DEPT_ADMIN
+  mustChangePassword Boolean      @default(false)
   
-  // 🎓 Naye College Fields
-  rollNo             String?     
-  branch             String?
-  year               String?     
-
-  // 🔐 Naya Security Field
-  mustChangePassword Boolean     @default(false)
-
-  departmentId       Int?        
-  department         Department? @relation(fields: [departmentId], references: [id])
+  organizationId     Int
+  departmentId       Int?
   
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  department         Department?  @relation(fields: [departmentId], references: [id])
   complaints         Complaint[]
+  comments           Comment[]
 }
 
 model Complaint {
-  id           Int             @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   title        String
   description  String
-  status       ComplaintStatus @default(PENDING) 
-  upvotes      Int             @default(0)
-  createdAt    DateTime        @default(now())
+  status       String       @default("Pending")
+  upvotes      Int          @default(0)
+  createdAt    DateTime     @default(now())
   
   userId       Int
-  user         User            @relation(fields: [userId], references: [id])
-
   departmentId Int
-  department   Department      @relation(fields: [departmentId], references: [id])
+  
+  user         User         @relation(fields: [userId], references: [id])
+  department   Department   @relation(fields: [departmentId], references: [id])
+  comments     Comment[]
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  text        String
+  createdAt   DateTime  @default(now())
+  
+  userId      Int
+  complaintId Int
+  
+  user        User      @relation(fields: [userId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
 }
