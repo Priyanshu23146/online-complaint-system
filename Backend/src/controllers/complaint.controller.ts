@@ -43,14 +43,20 @@ export const getComplaints = async (
   res: Response,
 ): Promise<any> => {
   try {
+    const userId = (req as any).user.id;
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
 
     const skip = (page - 1) * limit;
-
-    // 🚀 FIX 2 & 3: Prisma Enum error hatane ke liye 'any' typecast kiya
     const whereCondition: any = status ? { status: status } : {};
+
+    // 🚀 SMART FILTER: HOD ko sirf apne department ki issues dikhengi
+    if (currentUser?.role === "DEPT_ADMIN") {
+      whereCondition.departmentId = currentUser.departmentId;
+    }
 
     const complaints = await prisma.complaint.findMany({
       where: whereCondition,
@@ -78,7 +84,6 @@ export const getComplaints = async (
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 // 3. Update Status (Admin)
 export const updateComplaintStatus = async (
   req: Request,

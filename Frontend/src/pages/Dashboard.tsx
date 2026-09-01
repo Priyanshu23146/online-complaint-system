@@ -119,6 +119,16 @@ const Dashboard: React.FC = () => {
       console.error("Upvote failed");
     }
   };
+  const handleStatusChange = async (id: number | string, newStatus: string) => {
+    try {
+      await API.put(`/complaints/${id}/status`, { status: newStatus });
+      setComplaints(
+        complaints.map((c) => (c.id === id ? { ...c, status: newStatus } : c)),
+      );
+    } catch (error) {
+      alert("Failed to update status!");
+    }
+  };
 
   const handleCreateDepartment = async () => {
     if (!newDeptName.trim()) return;
@@ -283,16 +293,35 @@ const Dashboard: React.FC = () => {
                           {complaint.title}
                         </h3>
                         <div className="flex items-center gap-3 mt-2 text-sm">
-                          <span
-                            className={`flex items-center gap-1 ${complaint.status === "Resolved" ? "text-green-600" : "text-amber-500"}`}
-                          >
-                            {complaint.status === "Resolved" ? (
-                              <CheckCircle className="h-4 w-4" />
+                          <div className="flex items-center gap-3 mt-2 text-sm">
+                            {currentUser.role === "DEPT_ADMIN" ? (
+                              <select
+                                value={complaint.status || "Pending"}
+                                onChange={(e) =>
+                                  handleStatusChange(
+                                    complaint.id,
+                                    e.target.value,
+                                  )
+                                }
+                                className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="In-Progress">In-Progress</option>
+                                <option value="Resolved">Resolved</option>
+                              </select>
                             ) : (
-                              <Clock className="h-4 w-4" />
+                              <span
+                                className={`flex items-center gap-1 font-medium ${complaint.status === "Resolved" ? "text-emerald-600" : complaint.status === "In-Progress" ? "text-blue-600" : "text-amber-500"}`}
+                              >
+                                {complaint.status === "Resolved" ? (
+                                  <CheckCircle className="h-4 w-4" />
+                                ) : (
+                                  <Clock className="h-4 w-4" />
+                                )}
+                                {complaint.status || "Pending"}
+                              </span>
                             )}
-                            {complaint.status || "Pending"}
-                          </span>
+                          </div>
                         </div>
                       </div>
                       <button
