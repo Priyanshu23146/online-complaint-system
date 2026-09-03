@@ -1,14 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Shield, Zap, BarChart3, ArrowRight } from "lucide-react";
+import { Shield, Zap, BarChart3, MonitorDot, ArrowRight } from "lucide-react";
 
 const Landing: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <nav className="flex items-center justify-between px-8 py-4 bg-white shadow-sm">
-        <div className="text-2xl font-bold text-indigo-700 flex items-center gap-2">
-          <Shield className="h-8 w-8" />
-          OCMS
+        {/* New Apna Desk Logo */}
+        <div className="flex items-center gap-2 font-bold text-xl text-indigo-700 tracking-wide">
+          <span className="bg-indigo-600 p-1.5 rounded-md shadow-sm">
+            <MonitorDot className="h-5 w-5 text-white" />
+          </span>
+          Apna Desk
         </div>
         <div className="space-x-4">
           <Link

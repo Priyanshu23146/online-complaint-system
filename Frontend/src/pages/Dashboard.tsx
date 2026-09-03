@@ -24,22 +24,37 @@ import {
   UserPlus,
   Trash2,
   MessageSquare,
+  Globe,
+  Building2,
+  CreditCard,
+  MonitorDot,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
 
 const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState(
-    currentUser.role !== "STUDENT" ? "admin" : "dashboard",
-  );
+  // 🚀 SMART ROUTING: Determine default tab based on role
+  const getDefaultTab = () => {
+    switch (currentUser.role) {
+      case "SUPER_ADMIN":
+        return "superadmin";
+      case "ORG_ADMIN":
+        return "admin";
+      default:
+        return "dashboard"; // For STUDENT and DEPT_ADMIN
+    }
+  };
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
+
   const [complaints, setComplaints] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<any[]>([]);
 
-  // 💬 NEW: Comment System States
+  // 💬 Comment System States
   const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -50,7 +65,7 @@ const Dashboard: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🚀 Admin Panel (Create Dept) States
+  // 🚀 Admin Panel States
   const [newDeptName, setNewDeptName] = useState("");
   const [isCreatingDept, setIsCreatingDept] = useState(false);
 
@@ -65,6 +80,17 @@ const Dashboard: React.FC = () => {
   } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
 
+  // 🚀 Super Admin Onboarding States
+  const [isOnboardClientOpen, setIsOnboardClientOpen] = useState(false);
+  const [clientOrgName, setClientOrgName] = useState("");
+  const [clientAdminName, setClientAdminName] = useState("");
+  const [clientAdminEmail, setClientAdminEmail] = useState("");
+  const [isOnboardingClient, setIsOnboardingClient] = useState(false);
+  const [clientGeneratedCreds, setClientGeneratedCreds] = useState<{
+    email: string;
+    pass: string;
+  } | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -72,11 +98,20 @@ const Dashboard: React.FC = () => {
         if (compRes.data && compRes.data.complaints) {
           setComplaints(compRes.data.complaints);
         }
+
         const deptRes = await API.get("/departments");
         if (deptRes.data && deptRes.data.departments) {
           setDepartments(deptRes.data.departments);
           if (deptRes.data.departments.length > 0) {
             setSelectedDept(deptRes.data.departments[0].id.toString());
+          }
+        }
+
+        // Fetch B2B Clients ONLY if user is SUPER_ADMIN
+        if (currentUser.role === "SUPER_ADMIN") {
+          const clientRes = await API.get("/superadmin/clients");
+          if (clientRes.data && clientRes.data.organizations) {
+            setClients(clientRes.data.organizations);
           }
         }
       } catch (error) {
@@ -86,7 +121,7 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [currentUser.role]);
 
   const handleCreateComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +172,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // 💬 NEW: Toggle chat window and fetch history
   const toggleChat = async (complaintId: number) => {
     if (activeChatId === complaintId) {
       setActiveChatId(null);
@@ -152,7 +186,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // 💬 NEW: Submit a new comment
   const handleSendComment = async (complaintId: number) => {
     if (!newComment.trim()) return;
     try {
@@ -193,10 +226,7 @@ const Dashboard: React.FC = () => {
       await API.delete(`/departments/${id}`);
       setDepartments(departments.filter((dept) => dept.id !== id));
     } catch (error: any) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to delete department. Maybe it has active complaints?",
-      );
+      alert(error.response?.data?.message || "Failed to delete department.");
     }
   };
 
@@ -226,10 +256,49 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleOnboardClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsOnboardingClient(true);
+    try {
+      const { data } = await API.post("/auth/onboard", {
+        organizationName: clientOrgName,
+        adminName: clientAdminName,
+        adminEmail: clientAdminEmail,
+      });
+
+      if (data.success) {
+        setClientGeneratedCreds({
+          email: data.adminEmail,
+          pass: data.tempPassword,
+        });
+        setClientOrgName("");
+        setClientAdminName("");
+        setClientAdminEmail("");
+
+        const clientRes = await API.get("/superadmin/clients");
+        if (clientRes.data && clientRes.data.organizations) {
+          setClients(clientRes.data.organizations);
+        }
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Failed to onboard client");
+    } finally {
+      setIsOnboardingClient(false);
+    }
+  };
+
+  // 🚀 FIXED: Hard reload to clear all states properly
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
+    // 1. Memory clear karein
+    localStorage.clear();
+
+    // 2. React Router se smoothly Landing Page par bhejein
+    navigate("/");
+
+    // 3. 100 milliseconds baad page refresh karein taaki purani state cache se hat jaye
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const chartData = [...complaints]
@@ -242,47 +311,64 @@ const Dashboard: React.FC = () => {
       {/* 📌 SIDEBAR */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shadow-2xl z-10">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span className="bg-indigo-600 p-2 rounded-lg">🎓</span> AITD Portal
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2 tracking-wide">
+            <span className="bg-indigo-600 p-2 rounded-lg shadow-lg">
+              <MonitorDot className="h-6 w-6 text-white" />
+            </span>
+            Apna Desk
           </h1>
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-2">
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "dashboard" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
-          >
-            <LayoutDashboard className="h-5 w-5" /> Complaints
-          </button>
-
-          <button
-            onClick={() => setActiveTab("attendance")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "attendance" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
-          >
-            <CalendarCheck className="h-5 w-5" /> Attendance
-          </button>
-
-          <button
-            onClick={() => setActiveTab("notices")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "notices" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
-          >
-            <Bell className="h-5 w-5" /> Notice Board
-          </button>
-
-          <button
-            onClick={() => setActiveTab("vault")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "vault" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
-          >
-            <BookOpen className="h-5 w-5" /> Academic Vault
-          </button>
-
-          {currentUser.role !== "STUDENT" && (
+          {/* 🚀 1. EXCLUSIVE SUPER ADMIN MENU */}
+          {currentUser.role === "SUPER_ADMIN" ? (
             <button
-              onClick={() => setActiveTab("admin")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mt-4 border border-indigo-500/30 ${activeTab === "admin" ? "bg-indigo-700 text-white" : "text-indigo-400 hover:bg-slate-800 hover:text-white"}`}
+              onClick={() => setActiveTab("superadmin")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "superadmin" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
             >
-              <ShieldCheck className="h-5 w-5" /> Admin Controls
+              <Globe className="h-5 w-5" /> Client Management
             </button>
+          ) : (
+            /* 🎓 2. STANDARD COLLEGE MENU */
+            <>
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "dashboard" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              >
+                <LayoutDashboard className="h-5 w-5" /> Complaints
+              </button>
+
+              <button
+                onClick={() => setActiveTab("attendance")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "attendance" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              >
+                <CalendarCheck className="h-5 w-5" /> Attendance
+              </button>
+
+              <button
+                onClick={() => setActiveTab("notices")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "notices" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              >
+                <Bell className="h-5 w-5" /> Notice Board
+              </button>
+
+              <button
+                onClick={() => setActiveTab("vault")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "vault" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              >
+                <BookOpen className="h-5 w-5" /> Academic Vault
+              </button>
+
+              {/* 🛡️ ORG ADMIN EXCLUSIVE TAB */}
+              {currentUser.role === "ORG_ADMIN" && (
+                <button
+                  onClick={() => setActiveTab("admin")}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mt-4 border border-indigo-500/30 ${activeTab === "admin" ? "bg-indigo-700 text-white" : "text-indigo-400 hover:bg-slate-800 hover:text-white"}`}
+                >
+                  <ShieldCheck className="h-5 w-5" /> Admin Controls
+                </button>
+              )}
+            </>
           )}
         </nav>
 
@@ -412,7 +498,6 @@ const Dashboard: React.FC = () => {
                             )}
                           </div>
 
-                          {/* TYPE MESSAGE INPUT */}
                           <div className="flex gap-2 mt-2">
                             <input
                               type="text"
@@ -563,7 +648,6 @@ const Dashboard: React.FC = () => {
                       </span>
 
                       <div className="flex items-center gap-2">
-                        {/* 🚀 THE WORKING ASSIGN BUTTON */}
                         <button
                           onClick={() => {
                             setAdminDeptId(dept.id);
@@ -589,9 +673,85 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* ---------------- SECTION 6: SUPER ADMIN MASTER DASHBOARD ---------------- */}
+        {activeTab === "superadmin" && (
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <Globe className="h-7 w-7 text-indigo-600" /> B2B Client
+                Management
+              </h2>
+              <button
+                onClick={() => {
+                  setIsOnboardClientOpen(true);
+                  setClientGeneratedCreds(null);
+                }}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm font-medium flex items-center gap-2"
+              >
+                <PlusCircle className="h-5 w-5" /> Onboard New Client
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clients.length === 0 ? (
+                <p className="text-slate-500 col-span-3">
+                  No clients onboarded yet.
+                </p>
+              ) : (
+                clients.map((client) => (
+                  <div
+                    key={client.id}
+                    className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition"
+                  >
+                    <div className="bg-slate-900 p-4 flex justify-between items-center">
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-indigo-400" />{" "}
+                        {client.name}
+                      </h3>
+                      <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded font-semibold border border-indigo-500/30">
+                        Active
+                      </span>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                          Organization Admin
+                        </p>
+                        {client.users.length > 0 ? (
+                          <p className="text-sm font-medium text-slate-700">
+                            {client.users[0].name} <br />{" "}
+                            <span className="text-slate-500 font-normal">
+                              {client.users[0].email}
+                            </span>
+                          </p>
+                        ) : (
+                          <p className="text-sm text-amber-600 font-medium italic">
+                            No Admin Assigned
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                          <CreditCard className="h-4 w-4 text-indigo-500" />
+                          Plan: {client.subscriptions?.[0]?.plan || "FREE"}
+                        </div>
+                        <button className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold transition">
+                          Upgrade
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* 🚀 COMPLAINT MODAL */}
+      {/* 🚀 MODAL 1: RAISE COMPLAINT */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -651,7 +811,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 🚀 ASSIGN ADMIN MODAL */}
+      {/* 🚀 MODAL 2: ASSIGN ADMIN */}
       {isAssignAdminOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
@@ -669,8 +829,8 @@ const Dashboard: React.FC = () => {
             </div>
 
             {generatedCreds ? (
-              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl text-center">
-                <h4 className="text-emerald-700 font-bold mb-2 flex items-center justify-center gap-2">
+              <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-xl text-center">
+                <h4 className="text-indigo-700 font-bold mb-2 flex items-center justify-center gap-2">
                   <CheckCircle className="h-5 w-5" /> Admin Created!
                 </h4>
                 <p className="text-sm text-slate-600 mb-4">
@@ -719,7 +879,7 @@ const Dashboard: React.FC = () => {
                     required
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="ramesh@aitd.edu"
+                    placeholder="ramesh@college.edu"
                     className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                 </div>
@@ -731,6 +891,107 @@ const Dashboard: React.FC = () => {
                   {isAssigning
                     ? "Generating System..."
                     : "Create Admin & Get Password"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🚀 MODAL 3: SUPER ADMIN ONBOARD CLIENT */}
+      {isOnboardClientOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex justify-between items-center mb-5 border-b pb-4">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="h-6 w-6 text-indigo-600" /> Onboard Client
+              </h3>
+              <button
+                onClick={() => setIsOnboardClientOpen(false)}
+                className="text-slate-400 hover:text-red-500 transition"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {clientGeneratedCreds ? (
+              <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-xl text-center">
+                <h4 className="text-indigo-700 font-bold mb-2 flex items-center justify-center gap-2">
+                  <CheckCircle className="h-5 w-5" /> Organization Created!
+                </h4>
+                <p className="text-sm text-slate-600 mb-4">
+                  Share these Master Admin credentials with the client.
+                </p>
+                <div className="bg-slate-900 p-4 rounded-lg font-mono text-sm text-slate-300 text-left">
+                  <div>
+                    Email:{" "}
+                    <span className="text-white">
+                      {clientGeneratedCreds.email}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    Temp Pass:{" "}
+                    <span className="text-indigo-400 font-bold">
+                      {clientGeneratedCreds.pass}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOnboardClientOpen(false)}
+                  className="mt-5 w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleOnboardClient}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Organization (College/Company) Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={clientOrgName}
+                    onChange={(e) => setClientOrgName(e.target.value)}
+                    placeholder="e.g. XYZ College"
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Admin Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={clientAdminName}
+                    onChange={(e) => setClientAdminName(e.target.value)}
+                    placeholder="e.g. Principal Sharma"
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Admin Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={clientAdminEmail}
+                    onChange={(e) => setClientAdminEmail(e.target.value)}
+                    placeholder="admin@college.edu"
+                    className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isOnboardingClient}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition shadow-md"
+                >
+                  {isOnboardingClient
+                    ? "Provisioning Setup..."
+                    : "Create Client Account"}
                 </button>
               </form>
             )}

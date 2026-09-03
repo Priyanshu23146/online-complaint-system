@@ -4,6 +4,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors"; // 👈 Naya import
 import commentRoutes from "./routes/comment.routes.js";
+import superAdminRoutes from "./routes/superadmin.routes.js";
 
 // Routers import kar rahe hain
 import authRoutes from "./routes/auth.routes.js";
@@ -31,6 +32,9 @@ app.use("/api/complaints", complaintRoutes);
 app.use(errorHandler);
 
 app.use("/api/comments", commentRoutes);
+
+// Super Admin wale requests
+app.use("/api/superadmin", superAdminRoutes);
 
 // ==========================================
 // SERVER START
