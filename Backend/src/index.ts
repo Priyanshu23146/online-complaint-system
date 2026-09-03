@@ -3,6 +3,7 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 import "dotenv/config";
 import express from "express";
 import cors from "cors"; // 👈 Naya import
+import commentRoutes from "./routes/comment.routes.js";
 
 // Routers import kar rahe hain
 import authRoutes from "./routes/auth.routes.js";
@@ -28,6 +29,8 @@ app.use("/api/complaints", complaintRoutes);
 
 // 🚨 YAHAN LAGANA HAI HAMARA SAFETY NET (Sab routes ke baad)
 app.use(errorHandler);
+
+app.use("/api/comments", commentRoutes);
 
 // ==========================================
 // SERVER START

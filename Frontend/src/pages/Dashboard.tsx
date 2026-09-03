@@ -23,6 +23,7 @@ import {
   PlusCircle,
   UserPlus,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
@@ -37,6 +38,11 @@ const Dashboard: React.FC = () => {
   const [complaints, setComplaints] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 💬 NEW: Comment System States
+  const [activeChatId, setActiveChatId] = useState<number | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
 
   // 🚀 Complaint Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -119,6 +125,7 @@ const Dashboard: React.FC = () => {
       console.error("Upvote failed");
     }
   };
+
   const handleStatusChange = async (id: number | string, newStatus: string) => {
     try {
       await API.put(`/complaints/${id}/status`, { status: newStatus });
@@ -127,6 +134,36 @@ const Dashboard: React.FC = () => {
       );
     } catch (error) {
       alert("Failed to update status!");
+    }
+  };
+
+  // 💬 NEW: Toggle chat window and fetch history
+  const toggleChat = async (complaintId: number) => {
+    if (activeChatId === complaintId) {
+      setActiveChatId(null);
+      return;
+    }
+    setActiveChatId(complaintId);
+    try {
+      const res = await API.get(`/comments/${complaintId}`);
+      setComments(res.data.comments);
+    } catch (error) {
+      console.error("Failed to fetch comments", error);
+    }
+  };
+
+  // 💬 NEW: Submit a new comment
+  const handleSendComment = async (complaintId: number) => {
+    if (!newComment.trim()) return;
+    try {
+      const res = await API.post("/comments", {
+        text: newComment,
+        complaintId,
+      });
+      setComments([...comments, res.data.comment]);
+      setNewComment("");
+    } catch (error) {
+      alert("Failed to send message");
     }
   };
 
@@ -286,13 +323,14 @@ const Dashboard: React.FC = () => {
                   complaints.map((complaint) => (
                     <div
                       key={complaint.id}
-                      className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition"
+                      className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition"
                     >
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900">
-                          {complaint.title}
-                        </h3>
-                        <div className="flex items-center gap-3 mt-2 text-sm">
+                      {/* TOP SECTION: INFO & UPVOTES */}
+                      <div className="flex items-start justify-between w-full">
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-900">
+                            {complaint.title}
+                          </h3>
                           <div className="flex items-center gap-3 mt-2 text-sm">
                             {currentUser.role === "DEPT_ADMIN" ? (
                               <select
@@ -323,16 +361,75 @@ const Dashboard: React.FC = () => {
                             )}
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleUpvote(complaint.id)}
+                          className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 transition group"
+                        >
+                          <ThumbsUp className="h-5 w-5 group-hover:-translate-y-1 transition-transform" />
+                          <span className="font-bold mt-1">
+                            {complaint.upvotes || 0}
+                          </span>
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleUpvote(complaint.id)}
-                        className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 transition group"
-                      >
-                        <ThumbsUp className="h-5 w-5 group-hover:-translate-y-1 transition-transform" />
-                        <span className="font-bold mt-1">
-                          {complaint.upvotes || 0}
-                        </span>
-                      </button>
+
+                      {/* 💬 CHAT UI TOGGLE BUTTON */}
+                      <div className="mt-4 border-t border-slate-100 pt-3">
+                        <button
+                          onClick={() => toggleChat(complaint.id)}
+                          className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 transition"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          {activeChatId === complaint.id
+                            ? "Close Discussion"
+                            : "Open Discussion"}
+                        </button>
+                      </div>
+
+                      {/* 🟢 LIVE CHATBOX WINDOW */}
+                      {activeChatId === complaint.id && (
+                        <div className="mt-3 bg-slate-50 rounded-lg p-4 shadow-inner border border-slate-200">
+                          <div className="max-h-40 overflow-y-auto space-y-2 mb-3 pr-2">
+                            {comments.length === 0 ? (
+                              <p className="text-xs text-slate-400 text-center italic">
+                                No comments yet. Start the conversation!
+                              </p>
+                            ) : (
+                              comments.map((msg, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`p-2 rounded-md text-sm w-fit max-w-[85%] ${msg.user.name === currentUser.name ? "bg-indigo-100 text-indigo-900 ml-auto" : "bg-white border text-slate-700"}`}
+                                >
+                                  <span className="block text-[10px] font-bold text-slate-500 mb-1">
+                                    {msg.user.name} (
+                                    {msg.user.role === "DEPT_ADMIN"
+                                      ? "HOD"
+                                      : "Student"}
+                                    )
+                                  </span>
+                                  {msg.text}
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          {/* TYPE MESSAGE INPUT */}
+                          <div className="flex gap-2 mt-2">
+                            <input
+                              type="text"
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder="Type an update or question..."
+                              className="flex-1 text-sm border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 bg-white"
+                            />
+                            <button
+                              onClick={() => handleSendComment(complaint.id)}
+                              className="bg-indigo-600 text-white px-4 py-1.5 rounded-md text-sm font-semibold hover:bg-indigo-700 transition"
+                            >
+                              Send
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
