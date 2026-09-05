@@ -257,6 +257,24 @@ const Dashboard: React.FC = () => {
     .sort((a, b) => b.upvotes - a.upvotes)
     .slice(0, 3)
     .map((c) => ({ name: `ID: ${c.id}`, votes: c.upvotes, title: c.title }));
+  // Add this new function to handle upgrading plans
+  const handleUpgradeClient = async (clientId: number) => {
+    const confirm = window.confirm("Upgrade this client to the PRO plan?");
+    if (!confirm) return;
+
+    try {
+      await API.put(`/superadmin/clients/${clientId}/upgrade`, { plan: "PRO" });
+
+      // Refresh the clients list after successful upgrade
+      const clientRes = await API.get("/superadmin/clients");
+      if (clientRes.data && clientRes.data.organizations) {
+        setClients(clientRes.data.organizations);
+      }
+      alert("Client upgraded successfully!");
+    } catch (error: any) {
+      alert("Failed to upgrade client plan.");
+    }
+  };
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -330,6 +348,7 @@ const Dashboard: React.FC = () => {
             clients={clients}
             setIsOnboardClientOpen={setIsOnboardClientOpen}
             setClientGeneratedCreds={setClientGeneratedCreds}
+            handleUpgrade={handleUpgradeClient} // 👈 Added prop
           />
         )}
       </main>

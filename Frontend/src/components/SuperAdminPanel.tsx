@@ -5,12 +5,14 @@ interface Props {
   clients: any[];
   setIsOnboardClientOpen: (val: boolean) => void;
   setClientGeneratedCreds: (val: any) => void;
+  handleUpgrade: (clientId: number) => void; // 👈 New prop added
 }
 
 const SuperAdminPanel: React.FC<Props> = ({
   clients,
   setIsOnboardClientOpen,
   setClientGeneratedCreds,
+  handleUpgrade,
 }) => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -18,6 +20,7 @@ const SuperAdminPanel: React.FC<Props> = ({
         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <Globe className="h-7 w-7 text-indigo-600" /> B2B Client Management
         </h2>
+        {/* Onboard Button is already functional here */}
         <button
           onClick={() => {
             setIsOnboardClientOpen(true);
@@ -52,7 +55,7 @@ const SuperAdminPanel: React.FC<Props> = ({
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                     Organization Admin
                   </p>
-                  {client.users.length > 0 ? (
+                  {client.users && client.users.length > 0 ? (
                     <p className="text-sm font-medium text-slate-700">
                       {client.users[0].name} <br />
                       <span className="text-slate-500 font-normal">
@@ -70,8 +73,12 @@ const SuperAdminPanel: React.FC<Props> = ({
                     <CreditCard className="h-4 w-4 text-indigo-500" />
                     Plan: {client.subscriptions?.[0]?.plan || "FREE"}
                   </div>
-                  <button className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold transition">
-                    Upgrade
+                  {/* 👇 Upgrade Button Made Functional */}
+                  <button
+                    onClick={() => handleUpgrade(client.id)}
+                    className="text-indigo-600 hover:text-indigo-800 text-sm font-bold transition px-3 py-1 bg-indigo-50 rounded-md hover:bg-indigo-100"
+                  >
+                    Upgrade to PRO
                   </button>
                 </div>
               </div>

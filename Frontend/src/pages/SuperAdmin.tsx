@@ -1,148 +1,93 @@
-import React, { useState } from "react";
-import { ShieldAlert, Copy, CheckCircle } from "lucide-react";
-import API from "../api";
+import React from "react";
+import { Globe, PlusCircle, Building2, CreditCard } from "lucide-react";
 
-const SuperAdmin: React.FC = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [generatedCredentials, setGeneratedCredentials] = useState<{
-    email: string;
-    pass: string;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
+interface Props {
+  clients: any[];
+  setIsOnboardClientOpen: (val: boolean) => void;
+  setClientGeneratedCreds: (val: any) => void;
+  handleUpgrade: (clientId: number) => void; // 👈 New prop added
+}
 
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setGeneratedCredentials(null);
-
-    try {
-      const { data } = await API.post("/auth/onboard-client", {
-        name,
-        email,
-        role: "DEPT_ADMIN", // Ya SUPER_ADMIN jo aap dena chahein
-      });
-
-      if (data.success) {
-        setGeneratedCredentials({
-          email: data.adminEmail,
-          pass: data.tempPassword,
-        });
-        setName("");
-        setEmail("");
-      }
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to create admin");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (generatedCredentials) {
-      navigator.clipboard.writeText(
-        `Email: ${generatedCredentials.email}\nPassword: ${generatedCredentials.pass}`,
-      );
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
+const SuperAdminPanel: React.FC<Props> = ({
+  clients,
+  setIsOnboardClientOpen,
+  setClientGeneratedCreds,
+  handleUpgrade,
+}) => {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700">
-        <div className="flex items-center gap-3 mb-6 border-b border-slate-700 pb-4">
-          <ShieldAlert className="h-8 w-8 text-red-500" />
-          <h2 className="text-2xl font-bold text-white">
-            Super Admin{" "}
-            <span className="text-slate-400 font-normal">| Onboarding</span>
-          </h2>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <Globe className="h-7 w-7 text-indigo-600" /> B2B Client Management
+        </h2>
+        {/* Onboard Button is already functional here */}
+        <button
+          onClick={() => {
+            setIsOnboardClientOpen(true);
+            setClientGeneratedCreds(null);
+          }}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm font-medium flex items-center gap-2"
+        >
+          <PlusCircle className="h-5 w-5" /> Onboard New Client
+        </button>
+      </div>
 
-        {generatedCredentials ? (
-          <div className="bg-emerald-900/30 border border-emerald-500/50 p-6 rounded-xl mb-6">
-            <h3 className="text-emerald-400 font-bold mb-2 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" /> Client Generated Successfully!
-            </h3>
-            <p className="text-slate-300 text-sm mb-4">
-              Share these credentials securely. The user will be forced to
-              change this password on first login.
-            </p>
-
-            <div className="bg-slate-950 p-4 rounded-lg font-mono text-sm text-slate-300 relative group">
-              <div>
-                Email:{" "}
-                <span className="text-white">{generatedCredentials.email}</span>
-              </div>
-              <div className="mt-2">
-                Pass:{" "}
-                <span className="text-amber-400">
-                  {generatedCredentials.pass}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {clients.length === 0 ? (
+          <p className="text-slate-500 col-span-3">No clients onboarded yet.</p>
+        ) : (
+          clients.map((client) => (
+            <div
+              key={client.id}
+              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition"
+            >
+              <div className="bg-slate-900 p-4 flex justify-between items-center">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-400" />{" "}
+                  {client.name}
+                </h3>
+                <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded font-semibold border border-indigo-500/30">
+                  Active
                 </span>
               </div>
-
-              <button
-                onClick={copyToClipboard}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
-              >
-                {copied ? (
-                  <span className="text-xs text-emerald-400">Copied!</span>
-                ) : (
-                  <Copy className="h-5 w-5" />
-                )}
-              </button>
+              <div className="p-5 space-y-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Organization Admin
+                  </p>
+                  {client.users && client.users.length > 0 ? (
+                    <p className="text-sm font-medium text-slate-700">
+                      {client.users[0].name} <br />
+                      <span className="text-slate-500 font-normal">
+                        {client.users[0].email}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-amber-600 font-medium italic">
+                      No Admin Assigned
+                    </p>
+                  )}
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <CreditCard className="h-4 w-4 text-indigo-500" />
+                    Plan: {client.subscriptions?.[0]?.plan || "FREE"}
+                  </div>
+                  {/* 👇 Upgrade Button Made Functional */}
+                  <button
+                    onClick={() => handleUpgrade(client.id)}
+                    className="text-indigo-600 hover:text-indigo-800 text-sm font-bold transition px-3 py-1 bg-indigo-50 rounded-md hover:bg-indigo-100"
+                  >
+                    Upgrade to PRO
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <button
-              onClick={() => setGeneratedCredentials(null)}
-              className="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
-            >
-              Create Another Client
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleCreateAdmin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Admin Full Name
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-indigo-500 outline-none"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Principal HBTU"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Official Email
-              </label>
-              <input
-                type="email"
-                required
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-indigo-500 outline-none"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@college.edu"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 mt-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-lg shadow-red-900/50"
-            >
-              {loading ? "Generating System..." : "Generate Client Credentials"}
-            </button>
-          </form>
+          ))
         )}
       </div>
     </div>
   );
 };
 
-export default SuperAdmin;
+export default SuperAdminPanel;
