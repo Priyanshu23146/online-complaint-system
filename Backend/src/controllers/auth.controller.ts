@@ -125,54 +125,62 @@ export const forceChangePassword = async (
   }
 };
 
-// 🚀 SUPER ADMIN: ONBOARD NEW CLIENT/ADMIN
+// 🚀 SUPER ADMIN: ONBOARD NEW CLIENT ORGANIZATION & ADMIN
 export const onboardClient = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    const { name, email, role } = req.body;
+    const { organizationName, adminName, adminEmail } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (!organizationName || !adminName || !adminEmail) {
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
+    }
+
+    // 1. Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
     if (existingUser) {
       return res
         .status(400)
-        .json({ success: false, message: "User already exists!" });
+        .json({ success: false, message: "Admin email already exists!" });
     }
 
-    // 1. Generate a random secure 8-character password
+    // 2. Generate random password
     const tempPassword = crypto.randomBytes(4).toString("hex");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-    // 🚀 SAAS LOGIC: Get or create organization for the admin
-    let org = await prisma.organization.findFirst();
-    if (!org) {
-      org = await prisma.organization.create({
-        data: { name: "AITD Kanpur", domain: "@aitd.edu" },
-      });
-    }
+    // 3. Create the New Organization (Sirf name ke sath, no domain/subscription)
+    const newOrg = await prisma.organization.create({
+      data: {
+        name: organizationName,
+      },
+    });
 
-    // 2. Create the Admin user with the security lock ON and linked to Organization
+    // 4. Create the Admin user
     const newAdmin = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: adminName,
+        email: adminEmail,
         password: hashedPassword,
-        role: role || "DEPT_ADMIN",
-        organizationId: org.id, // 🚀 Fixed SaaS linkage
+        role: "ORG_ADMIN",
+        organizationId: newOrg.id,
         mustChangePassword: true,
       },
     });
 
-    // 3. Send the plain password in response
+    // 5. Success Response
     res.status(201).json({
       success: true,
-      message: "Admin created successfully!",
+      message: "Client created successfully!",
       adminEmail: newAdmin.email,
       tempPassword: tempPassword,
     });
   } catch (error) {
-    console.error("Onboarding Error:", error);
+    console.error("Onboarding Error:", error); // 👈 Asli error yahan print hoga
     res
       .status(500)
       .json({ success: false, message: "Server error during onboarding" });
