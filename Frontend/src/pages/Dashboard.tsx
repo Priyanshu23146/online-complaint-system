@@ -275,6 +275,21 @@ const Dashboard: React.FC = () => {
       alert("Failed to upgrade client plan.");
     }
   };
+  const handleDeleteClient = async (clientId: number) => {
+    const confirm = window.confirm(
+      "Are you sure you want to delete this organization? This action cannot be undone.",
+    );
+    if (!confirm) return;
+
+    try {
+      await API.delete(`/superadmin/clients/${clientId}`);
+      setClients(clients.filter((c) => c.id !== clientId));
+    } catch (error: any) {
+      alert(
+        "Failed to delete client. It might have active users or complaints.",
+      );
+    }
+  };
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -349,6 +364,7 @@ const Dashboard: React.FC = () => {
             setIsOnboardClientOpen={setIsOnboardClientOpen}
             setClientGeneratedCreds={setClientGeneratedCreds}
             handleUpgrade={handleUpgradeClient} // 👈 Added prop
+            handleDelete={handleDeleteClient}
           />
         )}
       </main>

@@ -84,3 +84,52 @@ export const upgradeClientPlan = async (
       .json({ success: false, message: "Failed to upgrade client plan" });
   }
 };
+// 🚀 Delete Client Organization (with cascade cleanup)
+export const deleteClient = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
+  try {
+    // Security check: Only SUPER_ADMIN can delete
+    if ((req as any).user.role !== "SUPER_ADMIN") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized access" });
+    }
+
+    const idParam = req.params.id as string;
+    if (!idParam)
+      return res
+        .status(400)
+        .json({ success: false, message: "Organization ID is required" });
+    const orgId = parseInt(idParam, 10);
+
+    // 🧹 Step 1: Delete related subscriptions first
+    await prisma.subscription.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // 🧹 Step 2: Delete related users linked to this organization
+    await prisma.user.deleteMany({
+      where: { organizationId: orgId },
+    });
+
+    // 🚀 Step 3: Now safely delete the organization
+    await prisma.organization.delete({
+      where: { id: orgId },
+    });
+
+    res.json({
+      success: true,
+      message: "Organization and its data deleted successfully!",
+    });
+  } catch (error) {
+    console.error("Delete Error:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to delete organization due to server error.",
+      });
+  }
+};

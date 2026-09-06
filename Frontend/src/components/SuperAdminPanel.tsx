@@ -1,11 +1,12 @@
 import React from "react";
-import { Globe, PlusCircle, Building2, CreditCard } from "lucide-react";
+import { Globe, PlusCircle, Building2, CreditCard, Trash2 } from "lucide-react"; // 👈 Added Trash2 icon
 
 interface Props {
   clients: any[];
   setIsOnboardClientOpen: (val: boolean) => void;
   setClientGeneratedCreds: (val: any) => void;
   handleUpgrade: (clientId: number) => void; // 👈 New prop added
+  handleDelete: (clientId: number) => void; // 👈 New delete prop added
 }
 
 const SuperAdminPanel: React.FC<Props> = ({
@@ -13,6 +14,7 @@ const SuperAdminPanel: React.FC<Props> = ({
   setIsOnboardClientOpen,
   setClientGeneratedCreds,
   handleUpgrade,
+  handleDelete, // 👈 Destructured the new prop
 }) => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -46,9 +48,20 @@ const SuperAdminPanel: React.FC<Props> = ({
                   <Building2 className="h-5 w-5 text-indigo-400" />{" "}
                   {client.name}
                 </h3>
-                <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded font-semibold border border-indigo-500/30">
-                  Active
-                </span>
+                {/* 👇 Added Flex container for Badge + Delete Button */}
+                <div className="flex items-center gap-3">
+                  <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded font-semibold border border-indigo-500/30">
+                    Active
+                  </span>
+                  {/* 👇 Functional Delete Button */}
+                  <button
+                    onClick={() => handleDelete(client.id)}
+                    className="text-red-400 hover:text-red-300 transition"
+                    title="Delete Organization"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
               <div className="p-5 space-y-4">
                 <div>
