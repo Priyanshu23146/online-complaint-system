@@ -6,6 +6,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import SetPassword from "./pages/SetPassword";
+import ScheduleDashboard from "./components/ScheduleDashboard";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/super-secret" element={<SuperAdmin />} />
+        <Route path="/schedule" element={<ScheduleDashboard />} />
       </Routes>
     </Router>
   );

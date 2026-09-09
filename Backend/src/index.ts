@@ -1,43 +1,37 @@
-import departmentRoutes from "./routes/department.routes.js"; // 👈 Naya Import
-import { errorHandler } from "./middlewares/error.middleware.js";
 import "dotenv/config";
 import express from "express";
-import cors from "cors"; // 👈 Naya import
+import cors from "cors";
+import { errorHandler } from "./middlewares/error.middleware.js";
+
+// Routers import
+import authRoutes from "./routes/auth.routes.js";
+import scheduleRoutes from "./routes/schedule.routes.js";
+import departmentRoutes from "./routes/department.routes.js";
+import complaintRoutes from "./routes/complaint.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import superAdminRoutes from "./routes/superadmin.routes.js";
-import scheduleRoutes from "./routes/schedule.routes.js";
-
-// Routers import kar rahe hain
-import authRoutes from "./routes/auth.routes.js";
-import complaintRoutes from "./routes/complaint.routes.js";
 
 const app = express();
 
-app.use(cors()); // 👈 Security guard ko pass de diya
+app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
 // ==========================================
-// ROUTES
+// ROUTES (Saare routes ek sath)
 // ==========================================
-// Authentication wale requests
 app.use("/api/auth", authRoutes);
-
 app.use("/api/schedules", scheduleRoutes);
-
-app.use("/api/departments", departmentRoutes); // 👈 Naya Route
-
-// Complaints wale requests
+app.use("/api/departments", departmentRoutes);
 app.use("/api/complaints", complaintRoutes);
-
-// 🚨 YAHAN LAGANA HAI HAMARA SAFETY NET (Sab routes ke baad)
-app.use(errorHandler);
-
 app.use("/api/comments", commentRoutes);
-
-// Super Admin wale requests
 app.use("/api/superadmin", superAdminRoutes);
+
+// ==========================================
+// 🚨 SAFETY NET (Hamesha sabse last mein)
+// ==========================================
+app.use(errorHandler);
 
 // ==========================================
 // SERVER START

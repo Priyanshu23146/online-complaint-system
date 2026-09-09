@@ -2,17 +2,17 @@ import React from "react";
 import { Globe, PlusCircle, Building2, CreditCard } from "lucide-react";
 
 interface Props {
-  clients: any[];
-  setIsOnboardClientOpen: (val: boolean) => void;
-  setClientGeneratedCreds: (val: any) => void;
-  handleUpgrade: (clientId: number) => void; // 👈 New prop added
+  clients?: any[];
+  setIsOnboardClientOpen?: (val: boolean) => void;
+  setClientGeneratedCreds?: (val: any) => void;
+  handleUpgrade?: (clientId: number) => void; // 👈 New prop added
 }
 
 const SuperAdminPanel: React.FC<Props> = ({
-  clients,
-  setIsOnboardClientOpen,
-  setClientGeneratedCreds,
-  handleUpgrade,
+  clients = [], // Agar undefined aaya, toh isko empty array maan lo
+  setIsOnboardClientOpen = () => {}, // Agar function nahi aaya, toh khali function chala do
+  setClientGeneratedCreds = () => {},
+  handleUpgrade = () => {},
 }) => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">

@@ -12,7 +12,7 @@ export const parseScheduleImage = async (
 ) => {
   try {
     // Using gemini-1.5-flash as it is super fast for multimodal parsing
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
     const prompt = `
       You are an expert data extraction assistant for a B2B SaaS platform (Apna Desk).
@@ -42,6 +42,8 @@ export const parseScheduleImage = async (
 
     const result = await model.generateContent([prompt, ...imageParts]);
     const responseText = result.response.text();
+
+    console.log("GEMINI KA ASLI JAWAB:", responseText);
 
     // Clean the response in case Gemini adds markdown codeblocks
     const cleanJsonString = responseText
