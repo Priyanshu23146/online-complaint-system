@@ -8,22 +8,22 @@ datasource db {
 }
 
 model Organization {
-  id            Int            @id @default(autoincrement())
-  name          String         @unique
-  domain        String?        @unique // e.g., "@aitd.edu" to auto-assign users
-  createdAt     DateTime       @default(now())
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  domain         String?        @unique
+  createdAt      DateTime       @default(now())
   
-  users         User[]
-  departments   Department[]
-  subscriptions Subscription[]
+  users          User[]
+  departments    Department[]
+  subscriptions  Subscription[]
 }
 
 model Subscription {
   id             Int          @id @default(autoincrement())
-  plan           String       @default("FREE") // PRO, ENTERPRISE
-  status         String       @default("ACTIVE") // PAST_DUE, CANCELED
+  plan           String       @default("FREE")
+  status         String       @default("ACTIVE")
   organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model Department {
@@ -31,9 +31,10 @@ model Department {
   name           String
   organizationId Int
   
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users          User[]
   complaints     Complaint[]
+  schedules      Schedule[]   // 🚀 Added for Timetables/Rosters
 }
 
 model User {
@@ -41,31 +42,36 @@ model User {
   name               String
   email              String       @unique
   password           String
-  role               String       @default("STUDENT") // ORG_ADMIN, DEPT_ADMIN
+  role               String       @default("STUDENT") 
   mustChangePassword Boolean      @default(false)
   
   organizationId     Int
   departmentId       Int?
   
-  organization       Organization @relation(fields: [organizationId], references: [id])
-  department         Department?  @relation(fields: [departmentId], references: [id])
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department         Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  
   complaints         Complaint[]
   comments           Comment[]
+  
+  // 🚀 Added for Attendance & Scheduling
+  managedSchedules   Schedule[]   @relation("ManagerSchedules")
+  attendances        Attendance[]
 }
 
 model Complaint {
-  id           Int          @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   title        String
   description  String
-  status       String       @default("Pending")
-  upvotes      Int          @default(0)
-  createdAt    DateTime     @default(now())
+  status       String     @default("Pending")
+  upvotes      Int        @default(0)
+  createdAt    DateTime   @default(now())
   
   userId       Int
   departmentId Int
   
-  user         User         @relation(fields: [userId], references: [id])
-  department   Department   @relation(fields: [departmentId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   comments     Comment[]
 }
 
@@ -77,6 +83,37 @@ model Comment {
   userId      Int
   complaintId Int
   
-  user        User      @relation(fields: [userId], references: [id])
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
+
+// 🚀 NEW: Universal Schedule Model (Classes, Shifts, Duties)
+model Schedule {
+  id             Int          @id @default(autoincrement())
+  title          String       // e.g., "Java Lecture", "Morning ICU Shift"
+  startTime      DateTime
+  endTime        DateTime
+  
+  departmentId   Int
+  department     Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  managerId      Int          // Teacher, Head Nurse, Team Lead
+  manager        User         @relation("ManagerSchedules", fields: [managerId], references: [id], onDelete: Cascade)
+  
+  attendances    Attendance[]
+}
+
+// 🚀 NEW: Universal Attendance Model
+model Attendance {
+  id             Int        @id @default(autoincrement())
+  status         String     // "PRESENT", "ABSENT", "LATE"
+  markedAt       DateTime   @default(now())
+  
+  scheduleId     Int
+  schedule       Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  userId         Int        // Student, Staff, Employee
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId]) // Prevents duplicate attendance for the same user in one shift/class
 }

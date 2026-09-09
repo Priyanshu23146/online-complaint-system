@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors"; // 👈 Naya import
 import commentRoutes from "./routes/comment.routes.js";
 import superAdminRoutes from "./routes/superadmin.routes.js";
+import scheduleRoutes from "./routes/schedule.routes.js";
 
 // Routers import kar rahe hain
 import authRoutes from "./routes/auth.routes.js";
@@ -22,6 +23,8 @@ const PORT = process.env.PORT || 5000;
 // ==========================================
 // Authentication wale requests
 app.use("/api/auth", authRoutes);
+
+app.use("/api/schedules", scheduleRoutes);
 
 app.use("/api/departments", departmentRoutes); // 👈 Naya Route
 
