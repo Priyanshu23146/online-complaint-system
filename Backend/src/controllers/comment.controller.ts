@@ -1,21 +1,28 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../config/db.js";
 
-// Add a new comment to a complaint
 export const addComment = async (req: Request, res: Response): Promise<any> => {
   try {
     const { text, complaintId } = req.body;
-    const userId = (req as any).user.id;
+    const userId = req.user!.id;
+    const organizationId = req.user!.organizationId;
+
+    // 🚨 FIX: verify the complaint being commented on belongs to the commenter's own org
+    const complaint = await prisma.complaint.findFirst({
+      where: { id: Number(complaintId), department: { organizationId } },
+    });
+    if (!complaint) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Complaint not found in your organization",
+        });
+    }
 
     const comment = await prisma.comment.create({
-      data: {
-        text,
-        complaintId: Number(complaintId),
-        userId,
-      },
-      include: {
-        user: { select: { name: true, role: true } },
-      },
+      data: { text, complaintId: complaint.id, userId },
+      include: { user: { select: { name: true, role: true } } },
     });
 
     res.status(201).json({ success: true, comment });
@@ -27,19 +34,30 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
-// Get all comments for a specific complaint
 export const getComments = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
     const { complaintId } = req.params;
+    const organizationId = req.user!.organizationId;
+
+    // 🚨 FIX: same tenant check before returning any comments
+    const complaint = await prisma.complaint.findFirst({
+      where: { id: Number(complaintId), department: { organizationId } },
+    });
+    if (!complaint) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Complaint not found in your organization",
+        });
+    }
 
     const comments = await prisma.comment.findMany({
-      where: { complaintId: Number(complaintId) },
-      include: {
-        user: { select: { name: true, role: true } },
-      },
+      where: { complaintId: complaint.id },
+      include: { user: { select: { name: true, role: true } } },
       orderBy: { createdAt: "asc" },
     });
 

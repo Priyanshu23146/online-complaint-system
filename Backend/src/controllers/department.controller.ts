@@ -3,67 +3,87 @@ import { prisma } from "../config/db.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-// 🚀 CREATE A NEW DEPARTMENT (Admin Only)
+const SALT_ROUNDS = 12;
+
+// 🚀 CREATE DEPARTMENT — scoped to caller's own organization
 export const createDepartment = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
     const { name } = req.body;
-
-    if (!name) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Department name is required" });
-    }
+    const organizationId = req.user!.organizationId;
 
     const newDept = await prisma.department.create({
-      data: { name },
+      data: { name, organizationId },
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Department created",
-      department: newDept,
-    });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Department created",
+        department: newDept,
+      });
   } catch (error) {
     console.error("Create Dept Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating department",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error while creating department",
+      });
   }
 };
 
-// 🚀 GET ALL DEPARTMENTS (For Dropdown)
+// 🚀 GET ALL DEPARTMENTS — 🚨 FIX: was returning EVERY org's departments before
 export const getDepartments = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    const departments = await prisma.department.findMany();
+    const organizationId = req.user!.organizationId;
+
+    const departments = await prisma.department.findMany({
+      where: { organizationId },
+      orderBy: { name: "asc" },
+    });
+
     res.status(200).json({ success: true, departments });
   } catch (error) {
     console.error("Fetch Depts Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching departments",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error while fetching departments",
+      });
   }
 };
-// 🚀 DELETE A DEPARTMENT (Admin Only)
+
+// 🚀 DELETE DEPARTMENT — scoped to own org
 export const deleteDepartment = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
     const { id } = req.params;
+    const organizationId = req.user!.organizationId;
 
-    // Prisma se department delete karo
-    await prisma.department.delete({
-      where: { id: Number(id) },
+    // 🚨 FIX: verify ownership before deleting anything
+    const dept = await prisma.department.findFirst({
+      where: { id: Number(id), organizationId },
     });
+    if (!dept) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Department not found in your organization",
+        });
+    }
 
+    await prisma.department.delete({ where: { id: Number(id) } });
     res
       .status(200)
       .json({ success: true, message: "Department deleted successfully" });
@@ -75,7 +95,8 @@ export const deleteDepartment = async (
     });
   }
 };
-// 🚀 ASSIGN ADMIN TO A DEPARTMENT
+
+// 🚀 ASSIGN DEPT_ADMIN — scoped to own org
 export const assignAdmin = async (
   req: Request,
   res: Response,
@@ -83,29 +104,45 @@ export const assignAdmin = async (
   try {
     const departmentId = parseInt(req.params.id as string);
     const { name, email } = req.body;
+    const organizationId = req.user!.organizationId;
 
-    // Check if email is already registered
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User with this email already exists!",
-      });
+    // 🚨 FIX: confirm the department belongs to the caller's own organization
+    const department = await prisma.department.findFirst({
+      where: { id: departmentId, organizationId },
+    });
+    if (!department) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Department not found in your organization",
+        });
     }
 
-    // 1. Generate a random temporary password
-    const tempPassword = crypto.randomBytes(4).toString("hex");
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "User with this email already exists!",
+        });
+    }
 
-    // 2. Create the DEPT_ADMIN with security lock
+    const tempPassword = crypto.randomBytes(4).toString("hex");
+    const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+
+    // 🚨 CRITICAL FIX: `organizationId` was missing entirely before — since it's
+    // a required field on User, this call would actually have crashed at runtime.
     const newAdmin = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role: "DEPT_ADMIN",
-        departmentId: departmentId, // 🚀 Department se link kar diya!
-        mustChangePassword: true, // Security Lock ON
+        organizationId: department.organizationId,
+        departmentId: department.id,
+        mustChangePassword: true,
       },
     });
 
@@ -113,7 +150,7 @@ export const assignAdmin = async (
       success: true,
       message: "Department Admin created successfully!",
       adminEmail: newAdmin.email,
-      tempPassword: tempPassword,
+      tempPassword,
     });
   } catch (error) {
     console.error("Assign Admin Error:", error);

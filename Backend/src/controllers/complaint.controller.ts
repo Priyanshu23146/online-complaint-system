@@ -7,60 +7,68 @@ export const createComplaint = async (
   res: Response,
 ): Promise<any> => {
   try {
-    // 🚀 FIX 1: Frontend se departmentId nikalna
     const { title, description, departmentId } = req.body;
-    const userId = (req as any).user.id;
+    const userId = req.user!.id;
+    const organizationId = req.user!.organizationId;
 
-    if (!departmentId) {
+    // 🚨 FIX: department must belong to the SAME org as the person filing the complaint
+    const department = await prisma.department.findFirst({
+      where: { id: Number(departmentId), organizationId },
+    });
+    if (!department) {
       return res
         .status(400)
-        .json({ success: false, message: "Department is required" });
+        .json({
+          success: false,
+          message: "Invalid department for your organization",
+        });
     }
 
     const newComplaint = await prisma.complaint.create({
-      data: {
-        title,
-        description,
-        userId,
-        departmentId: Number(departmentId), // Number mein convert kiya
-      },
+      data: { title, description, userId, departmentId: department.id },
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Complaint registered successfully",
-      complaint: newComplaint,
-    });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Complaint registered successfully",
+        complaint: newComplaint,
+      });
   } catch (error) {
     console.error("Complaint Creation Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// 2. Get All Complaints
+// 2. Get All Complaints — 🚨 CRITICAL FIX: was cross-tenant before, no org filter at all
 export const getComplaints = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    const userId = (req as any).user.id;
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    const { role, departmentId, organizationId, id: userId } = req.user!;
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
-
     const skip = (page - 1) * limit;
-    const whereCondition: any = status ? { status: status } : {};
 
-    // 🚀 SMART FILTER: HOD ko sirf apne department ki issues dikhengi
-    if (currentUser?.role === "DEPT_ADMIN") {
-      whereCondition.departmentId = currentUser.departmentId;
+    // Every query is scoped through department.organizationId — Org A can
+    // never see Org B's complaints, regardless of role.
+    const whereCondition: any = { department: { organizationId } };
+    if (status) whereCondition.status = status;
+
+    if (role === "DEPT_ADMIN") {
+      whereCondition.departmentId = departmentId;
+    }
+    if (role === "STUDENT") {
+      whereCondition.userId = userId; // students only see their own complaints
     }
 
     const complaints = await prisma.complaint.findMany({
       where: whereCondition,
-      skip: skip,
+      skip,
       take: limit,
       include: { user: { select: { name: true, email: true } } },
       orderBy: { createdAt: "desc" },
@@ -84,7 +92,8 @@ export const getComplaints = async (
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-// 3. Update Status (Admin)
+
+// 3. Update Status
 export const updateComplaintStatus = async (
   req: Request,
   res: Response,
@@ -92,16 +101,37 @@ export const updateComplaintStatus = async (
   try {
     const complaintId = parseInt(req.params.id as string, 10);
     const { status } = req.body;
-    const userId = (req as any).user.id;
+    const { role, departmentId, organizationId } = req.user!;
 
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (role === "STUDENT") {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Access Denied! Sirf Admin isey update kar sakte hain.",
+        });
+    }
 
-    // 🚀 FIX 4: "Admin" role ab exist nahi karta, STUDENT check karenge
-    if (currentUser?.role === "STUDENT") {
-      return res.status(403).json({
-        success: false,
-        message: "Access Denied! Sirf Admin isey update kar sakte hain.",
-      });
+    // 🚨 CRITICAL FIX: previously fetched by ID alone — any admin from ANY
+    // org could update ANY complaint anywhere. Now tenant + dept scoped.
+    const complaint = await prisma.complaint.findFirst({
+      where: { id: complaintId, department: { organizationId } },
+    });
+    if (!complaint) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Complaint not found in your organization",
+        });
+    }
+    if (role === "DEPT_ADMIN" && complaint.departmentId !== departmentId) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "You can only update complaints in your own department",
+        });
     }
 
     const updatedComplaint = await prisma.complaint.update({
@@ -109,44 +139,57 @@ export const updateComplaintStatus = async (
       data: { status },
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Complaint status updated successfully!",
-      updatedComplaint,
-    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Complaint status updated successfully!",
+        updatedComplaint,
+      });
   } catch (error) {
     console.error("Status Update Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// 4. Delete Complaint (Admin)
+// 4. Delete Complaint
 export const deleteComplaint = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
     const complaintId = parseInt(req.params.id as string, 10);
-    const userId = (req as any).user.id;
+    const { role, departmentId, organizationId } = req.user!;
 
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-
-    // 🚀 FIX 5: Role check fix kiya
-    if (currentUser?.role === "STUDENT") {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
-      });
+    if (role === "STUDENT") {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message:
+            "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
+        });
     }
 
-    const existingComplaint = await prisma.complaint.findUnique({
-      where: { id: complaintId },
+    // 🚨 CRITICAL FIX: same tenant + dept scoping as update above
+    const complaint = await prisma.complaint.findFirst({
+      where: { id: complaintId, department: { organizationId } },
     });
-    if (!existingComplaint) {
+    if (!complaint) {
       return res
         .status(404)
-        .json({ success: false, message: "Complaint not found!" });
+        .json({
+          success: false,
+          message: "Complaint not found in your organization",
+        });
+    }
+    if (role === "DEPT_ADMIN" && complaint.departmentId !== departmentId) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "You can only delete complaints in your own department",
+        });
     }
 
     await prisma.complaint.delete({ where: { id: complaintId } });

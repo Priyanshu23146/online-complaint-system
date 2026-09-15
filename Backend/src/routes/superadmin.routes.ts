@@ -5,16 +5,14 @@ import {
   deleteClient,
 } from "../controllers/superadmin.controller.js";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
+import { authorize } from "../middlewares/rbac.middleware.js";
 
 const router = express.Router();
 
-// Get all onboarded clients (colleges)
-router.get("/clients", authenticateUser, getAllClients);
+router.use(authenticateUser, authorize("SUPER_ADMIN"));
 
-// 🚀 Naya route for upgrading the client plan
-router.put("/clients/:id/upgrade", authenticateUser, upgradeClientPlan);
-
-// Routes ke aakhir mein yeh DELETE route add karein:
-router.delete("/clients/:id", authenticateUser, deleteClient);
+router.get("/clients", getAllClients);
+router.put("/clients/:id/upgrade", upgradeClientPlan);
+router.delete("/clients/:id", deleteClient);
 
 export default router;

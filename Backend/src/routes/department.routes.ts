@@ -5,11 +5,37 @@ import {
   assignAdmin,
   deleteDepartment,
 } from "../controllers/department.controller.js";
+import { authenticateUser } from "../middlewares/auth.middleware.js";
+import { authorize } from "../middlewares/rbac.middleware.js";
+import { validate } from "../middlewares/validate.middleware.js";
+import {
+  createDepartmentSchema,
+  assignAdminSchema,
+} from "../validators/department.validator.js";
 
 const router = express.Router();
 
-router.post("/", createDepartment); // Naya department banane ke liye
-router.get("/", getDepartments); // Saare departments list karne ke liye
-router.delete("/:id", deleteDepartment); // 🚀 Naya Delete Route
-router.post("/:id/assign-admin", assignAdmin); // 🚀 Naya Route
+// 🚨 CRITICAL FIX: this ENTIRE router had NO auth middleware before —
+// anyone, logged in or not, could create/delete departments for any org.
+router.use(authenticateUser);
+
+router.post(
+  "/",
+  authorize("ORG_ADMIN"),
+  validate(createDepartmentSchema),
+  createDepartment,
+);
+router.get(
+  "/",
+  authorize("ORG_ADMIN", "DEPT_ADMIN", "STUDENT"),
+  getDepartments,
+);
+router.delete("/:id", authorize("ORG_ADMIN"), deleteDepartment);
+router.post(
+  "/:id/assign-admin",
+  authorize("ORG_ADMIN"),
+  validate(assignAdminSchema),
+  assignAdmin,
+);
+
 export default router;
