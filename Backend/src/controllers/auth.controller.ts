@@ -4,42 +4,68 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/db.js";
 
-// 🚀 REGISTER API
+const SALT_ROUNDS = 12; // 🚨 FIX: was 10
+
+// 🚀 REGISTER API (public self-signup — always creates a STUDENT)
 export const register = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, organizationCode, departmentId } = req.body;
 
-    // 1. Check if user exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser)
+    if (existingUser) {
       return res
         .status(400)
         .json({ success: false, message: "Email already in use" });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 2. 🚀 SAAS LOGIC: Check if default Organization exists, if not, create it
-    let org = await prisma.organization.findFirst();
+    // 🚨 FIX: organization is resolved from an explicit join-code (Organization.domain),
+    // never "the first org in the DB". Every signup now belongs to a REAL, correct tenant.
+    const org = await prisma.organization.findUnique({
+      where: { domain: organizationCode },
+    });
     if (!org) {
-      org = await prisma.organization.create({
-        data: { name: "AITD Kanpur", domain: "@aitd.edu" },
+      return res.status(404).json({
+        success: false,
+        message:
+          "Invalid organization code. Check with your college/hospital admin.",
       });
     }
 
-    // 3. Create User and link to the Organization
+    // If a department is given, it must belong to THIS organization —
+    // stops a user from claiming a departmentId that belongs to another tenant.
+    if (departmentId) {
+      const dept = await prisma.department.findFirst({
+        where: { id: departmentId, organizationId: org.id },
+      });
+      if (!dept) {
+        return res.status(400).json({
+          success: false,
+          message: "That department does not belong to this organization.",
+        });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // 🚨 FIX: role is NEVER taken from client input anymore. Previously
+    // `role: role || "STUDENT"` let anyone self-register as SUPER_ADMIN by
+    // just adding `"role": "SUPER_ADMIN"` to the request body.
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role || "STUDENT",
-        organizationId: org.id, // 🚀 Naya SaaS rule
+        role: "STUDENT",
+        organizationId: org.id,
+        departmentId: departmentId ?? null,
       },
     });
 
-    res
-      .status(201)
-      .json({ success: true, message: "User registered successfully!" });
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully!",
+      user: { id: user.id, name: user.name, email: user.email },
+    });
   } catch (error) {
     console.error("Register Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -65,9 +91,18 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
+    // 🚨 FIX: organizationId + departmentId now embedded in the token.
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not configured");
+    }
     const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET || "supersecret",
+      {
+        id: user.id,
+        role: user.role,
+        organizationId: user.organizationId,
+        departmentId: user.departmentId,
+      },
+      process.env.JWT_SECRET, // 🚨 FIX: no more "supersecret" fallback anywhere
       { expiresIn: "1d" },
     );
 
@@ -80,6 +115,8 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organizationId: user.organizationId,
+        departmentId: user.departmentId,
         mustChangePassword: user.mustChangePassword,
       },
     });
@@ -91,24 +128,23 @@ export const login = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
-// 🚀 FORCE CHANGE PASSWORD API
+// 🚀 FORCE CHANGE PASSWORD API — must be logged in, can only change YOUR OWN password
 export const forceChangePassword = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    const { email, newPassword } = req.body;
+    // 🚨 CRITICAL FIX: previously took `email` straight from req.body with
+    // ZERO auth check on this route — anyone could reset ANY account's password
+    // without knowing the old one. Now identity comes only from the verified token.
+    const userId = req.user!.id;
+    const { newPassword } = req.body;
 
-    // 1. Naya password hash karne ke liye function
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-    // 2. Database mein user ka password update karein aur flag ko 'false' kar dein
     await prisma.user.update({
-      where: { email },
-      data: {
-        password: hashedPassword,
-        mustChangePassword: false, // 🚀 Security lock khul gaya!
-      },
+      where: { id: userId },
+      data: { password: hashedPassword, mustChangePassword: false },
     });
 
     res.status(200).json({
@@ -118,10 +154,12 @@ export const forceChangePassword = async (
     });
   } catch (error) {
     console.error("Password Update Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating password",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server error while updating password",
+      });
   }
 };
 
@@ -131,15 +169,9 @@ export const onboardClient = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { organizationName, adminName, adminEmail } = req.body;
+    const { organizationName, organizationCode, adminName, adminEmail } =
+      req.body;
 
-    if (!organizationName || !adminName || !adminEmail) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
-    }
-
-    // 1. Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: adminEmail },
     });
@@ -149,18 +181,22 @@ export const onboardClient = async (
         .json({ success: false, message: "Admin email already exists!" });
     }
 
-    // 2. Generate random password
-    const tempPassword = crypto.randomBytes(4).toString("hex");
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const existingOrg = await prisma.organization.findUnique({
+      where: { domain: organizationCode },
+    });
+    if (existingOrg) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Organization code already taken." });
+    }
 
-    // 3. Create the New Organization (Sirf name ke sath, no domain/subscription)
+    const tempPassword = crypto.randomBytes(4).toString("hex");
+    const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+
     const newOrg = await prisma.organization.create({
-      data: {
-        name: organizationName,
-      },
+      data: { name: organizationName, domain: organizationCode },
     });
 
-    // 4. Create the Admin user
     const newAdmin = await prisma.user.create({
       data: {
         name: adminName,
@@ -172,15 +208,15 @@ export const onboardClient = async (
       },
     });
 
-    // 5. Success Response
     res.status(201).json({
       success: true,
       message: "Client created successfully!",
+      organizationCode: newOrg.domain,
       adminEmail: newAdmin.email,
-      tempPassword: tempPassword,
+      tempPassword,
     });
   } catch (error) {
-    console.error("Onboarding Error:", error); // 👈 Asli error yahan print hoga
+    console.error("Onboarding Error:", error);
     res
       .status(500)
       .json({ success: false, message: "Server error during onboarding" });
