@@ -19,6 +19,7 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rollNo, setRollNo] = useState("");
+  const [organizationCode, setOrganizationCode] = useState("");
   const [branch, setBranch] = useState("CSE");
   const [year, setYear] = useState("2nd Year");
 
@@ -38,7 +39,9 @@ const Signup: React.FC = () => {
         password,
         rollNo,
         branch,
+
         year,
+        organizationCode,
       });
 
       alert("Account created successfully! Please login.");
@@ -81,6 +84,22 @@ const Signup: React.FC = () => {
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Full Name
             </label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Organization Code
+              </label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="e.g. aitd-kanpur"
+                  value={organizationCode}
+                  onChange={(e) => setOrganizationCode(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input

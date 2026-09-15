@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api", // Aapka backend URL
+  baseURL: "http://localhost:5000/api",
 });
 
-// Yeh function har request se pehle chalega aur automatically token add karega
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -12,5 +11,18 @@ API.interceptors.request.use((req) => {
   }
   return req;
 });
+
+// 🚨 FIX: 401 (expired/invalid token) was never handled before
+API.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default API;
