@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  DEPT_ADMIN
+  STAFF
+  MEMBER
+}
+
+enum NoticeVisibility {
+  ORG_PUBLIC        // poore organization ko dikhega
+  DEPT_PUBLIC       // us department ke sabhi logon ko
+  STAFF_ONLY        // sirf us dept ke STAFF + DEPT_ADMIN ko
+  DEPT_ADMIN_ONLY   // sirf us dept ke DEPT_ADMIN ko
+}
+
 model Organization {
   id             Int            @id @default(autoincrement())
   name           String         @unique
@@ -16,6 +31,7 @@ model Organization {
   users          User[]
   departments    Department[]
   subscriptions  Subscription[]
+  notices        Notice[]
 }
 
 model Subscription {
@@ -34,6 +50,7 @@ model Department {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users          User[]
   complaints     Complaint[]
+  notices   Notice[]
   schedules      Schedule[]   // 🚀 Added for Timetables/Rosters
 }
 
@@ -42,7 +59,7 @@ model User {
   name               String
   email              String       @unique
   password           String
-  role               String       @default("STUDENT") 
+    role               Role         @default(MEMBER)
   mustChangePassword Boolean      @default(false)
   
   organizationId     Int
@@ -57,6 +74,8 @@ model User {
   // 🚀 Added for Attendance & Scheduling
   managedSchedules   Schedule[]   @relation("ManagerSchedules")
   attendances        Attendance[]
+
+    notices            Notice[]     @relation("NoticeAuthor")
 }
 
 model Complaint {
@@ -116,4 +135,28 @@ model Attendance {
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([scheduleId, userId]) // Prevents duplicate attendance for the same user in one shift/class
+}
+
+// 🚀 NEW: Notice Board with visibility scoping
+model Notice {
+  id             Int              @id @default(autoincrement())
+  title          String
+  content        String
+  visibility     NoticeVisibility @default(ORG_PUBLIC)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organizationId Int
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // null = organization-wide notice (ORG_PUBLIC ke liye)
+  departmentId   Int?
+  department     Department?      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  createdById    Int
+  createdBy      User             @relation("NoticeAuthor", fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Query performance: har read query in teeno columns pe filter karti hai
+  @@index([organizationId, visibility])
+  @@index([departmentId, visibility])
 }
