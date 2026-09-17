@@ -5,6 +5,9 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
+import noticeRoutes from "./routes/notice.routes.js";
+import userRoutes from "./routes/user.routes.js";
+
 import authRoutes from "./routes/auth.routes.js";
 import scheduleRoutes from "./routes/schedule.routes.js";
 import departmentRoutes from "./routes/department.routes.js";
@@ -45,6 +48,8 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/superadmin", superAdminRoutes);
+app.use("/api/notices", noticeRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(errorHandler);
 

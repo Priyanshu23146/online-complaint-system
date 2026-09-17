@@ -1,9 +1,6 @@
-export interface AuthUser {
-  id: number;
-  role: string;
-  organizationId: number;
-  departmentId: number | null;
-}
+import type { AuthUser } from "./auth-user.js";
+
+export type { AuthUser } from "./auth-user.js";
 
 declare global {
   namespace Express {

@@ -55,7 +55,7 @@ export const register = async (req: Request, res: Response): Promise<any> => {
         name,
         email,
         password: hashedPassword,
-        role: "STUDENT",
+        role: "MEMBER", // 🚨 FIX: always MEMBER for self-signup
         organizationId: org.id,
         departmentId: departmentId ?? null,
       },
@@ -154,12 +154,10 @@ export const forceChangePassword = async (
     });
   } catch (error) {
     console.error("Password Update Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error while updating password",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating password",
+    });
   }
 };
 

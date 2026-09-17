@@ -1,12 +1,12 @@
 import express from "express";
 import multer from "multer";
-import { uploadAndParseTimetable } from "../controllers/schedule.controller.js";
+import { uploadAndParseTimetable, getSchedules, } from "../controllers/schedule.controller.js";
 import { authenticateUser } from "../middlewares/auth.middleware.js";
+import { authorize } from "../middlewares/rbac.middleware.js";
 const router = express.Router();
-// Memory storage use kar rahe hain taaki image direct RAM se Gemini ko jaye, disk par save na ho
 const upload = multer({ storage: multer.memoryStorage() });
-// 🚀 AI Parsing Route
-// Frontend se key "scheduleImage" honi chahiye
-router.post("/upload", authenticateUser, upload.single("scheduleImage"), uploadAndParseTimetable);
+router.use(authenticateUser);
+router.post("/upload", authorize("ORG_ADMIN", "DEPT_ADMIN"), upload.single("scheduleImage"), uploadAndParseTimetable);
+router.get("/", getSchedules);
 export default router;
 //# sourceMappingURL=schedule.routes.js.map

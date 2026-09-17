@@ -16,25 +16,21 @@ export const createComplaint = async (
       where: { id: Number(departmentId), organizationId },
     });
     if (!department) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Invalid department for your organization",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department for your organization",
+      });
     }
 
     const newComplaint = await prisma.complaint.create({
       data: { title, description, userId, departmentId: department.id },
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Complaint registered successfully",
-        complaint: newComplaint,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Complaint registered successfully",
+      complaint: newComplaint,
+    });
   } catch (error) {
     console.error("Complaint Creation Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -62,8 +58,8 @@ export const getComplaints = async (
     if (role === "DEPT_ADMIN") {
       whereCondition.departmentId = departmentId;
     }
-    if (role === "STUDENT") {
-      whereCondition.userId = userId; // students only see their own complaints
+    if (role === "MEMBER") {
+      whereCondition.userId = userId; // members only see their own complaints
     }
 
     const complaints = await prisma.complaint.findMany({
@@ -103,13 +99,11 @@ export const updateComplaintStatus = async (
     const { status } = req.body;
     const { role, departmentId, organizationId } = req.user!;
 
-    if (role === "STUDENT") {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Access Denied! Sirf Admin isey update kar sakte hain.",
-        });
+    if (role === "MEMBER") {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied! Sirf Admin isey update kar sakte hain.",
+      });
     }
 
     // 🚨 CRITICAL FIX: previously fetched by ID alone — any admin from ANY
@@ -118,20 +112,16 @@ export const updateComplaintStatus = async (
       where: { id: complaintId, department: { organizationId } },
     });
     if (!complaint) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Complaint not found in your organization",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found in your organization",
+      });
     }
     if (role === "DEPT_ADMIN" && complaint.departmentId !== departmentId) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "You can only update complaints in your own department",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "You can only update complaints in your own department",
+      });
     }
 
     const updatedComplaint = await prisma.complaint.update({
@@ -139,13 +129,11 @@ export const updateComplaintStatus = async (
       data: { status },
     });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Complaint status updated successfully!",
-        updatedComplaint,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Complaint status updated successfully!",
+      updatedComplaint,
+    });
   } catch (error) {
     console.error("Status Update Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -161,14 +149,12 @@ export const deleteComplaint = async (
     const complaintId = parseInt(req.params.id as string, 10);
     const { role, departmentId, organizationId } = req.user!;
 
-    if (role === "STUDENT") {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message:
-            "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
-        });
+    if (role === "MEMBER") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Access Denied! Sirf Admin hi complaints delete kar sakte hain.",
+      });
     }
 
     // 🚨 CRITICAL FIX: same tenant + dept scoping as update above
@@ -176,20 +162,16 @@ export const deleteComplaint = async (
       where: { id: complaintId, department: { organizationId } },
     });
     if (!complaint) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Complaint not found in your organization",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found in your organization",
+      });
     }
     if (role === "DEPT_ADMIN" && complaint.departmentId !== departmentId) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "You can only delete complaints in your own department",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete complaints in your own department",
+      });
     }
 
     await prisma.complaint.delete({ where: { id: complaintId } });

@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -59,7 +60,7 @@ model User {
   name               String
   email              String       @unique
   password           String
-    role               Role         @default(MEMBER)
+  role               Role         @default(MEMBER)
   mustChangePassword Boolean      @default(false)
   
   organizationId     Int
@@ -75,7 +76,8 @@ model User {
   managedSchedules   Schedule[]   @relation("ManagerSchedules")
   attendances        Attendance[]
 
-    notices            Notice[]     @relation("NoticeAuthor")
+  notices       Notice[] @relation("NoticeAuthor")
+  createdAt DateTime @default(now())
 }
 
 model Complaint {

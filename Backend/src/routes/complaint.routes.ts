@@ -11,12 +11,19 @@ import {
   updateComplaintStatus,
   deleteComplaint,
 } from "../controllers/complaint.controller.js";
+import { authorize } from "../middlewares/rbac.middleware.js";
 
 const router = express.Router();
 
 router.use(authenticateUser);
+router.post(
+  "/",
+  authenticateUser,
+  authorize("ORG_ADMIN", "DEPT_ADMIN", "STAFF", "MEMBER"),
+  validate(createComplaintSchema),
+  createComplaint,
+);
 
-router.post("/", validate(createComplaintSchema), createComplaint);
 router.get("/", getComplaints);
 router.put(
   "/:id/status",

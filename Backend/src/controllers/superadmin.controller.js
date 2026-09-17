@@ -4,11 +4,6 @@ import { prisma } from "../config/db.js";
 export const getAllClients = async (req, res) => {
     try {
         // Security check: Only SUPER_ADMIN can access this
-        if (req.user.role !== "SUPER_ADMIN") {
-            return res
-                .status(403)
-                .json({ success: false, message: "Unauthorized access" });
-        }
         const organizations = await prisma.organization.findMany({
             include: {
                 users: {
@@ -35,11 +30,6 @@ export const getAllClients = async (req, res) => {
 export const upgradeClientPlan = async (req, res) => {
     try {
         // 🛡️ Security check: Only SUPER_ADMIN can access this
-        if (req.user.role !== "SUPER_ADMIN") {
-            return res
-                .status(403)
-                .json({ success: false, message: "Unauthorized access" });
-        }
         // ✅ TypeScript Safe ID Parsing
         const idParam = req.params.id;
         if (!idParam) {
@@ -75,11 +65,6 @@ export const upgradeClientPlan = async (req, res) => {
 export const deleteClient = async (req, res) => {
     try {
         // Security check: Only SUPER_ADMIN can delete
-        if (req.user.role !== "SUPER_ADMIN") {
-            return res
-                .status(403)
-                .json({ success: false, message: "Unauthorized access" });
-        }
         const idParam = req.params.id;
         if (!idParam)
             return res
@@ -105,9 +90,7 @@ export const deleteClient = async (req, res) => {
     }
     catch (error) {
         console.error("Delete Error:", error);
-        res
-            .status(500)
-            .json({
+        res.status(500).json({
             success: false,
             message: "Failed to delete organization due to server error.",
         });

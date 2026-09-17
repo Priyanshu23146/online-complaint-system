@@ -27,7 +27,7 @@ router.post(
 );
 router.get(
   "/",
-  authorize("ORG_ADMIN", "DEPT_ADMIN", "STUDENT"),
+  authorize("ORG_ADMIN", "DEPT_ADMIN", "STAFF", "MEMBER"),
   getDepartments,
 );
 router.delete("/:id", authorize("ORG_ADMIN"), deleteDepartment);
