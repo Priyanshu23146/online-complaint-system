@@ -8,6 +8,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SetPassword from "./pages/SetPassword";
 import ScheduleDashboard from "./components/ScheduleDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NoticeBoard from "./components/NoticeBoard";
 
 function App() {
   return (
@@ -57,6 +58,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["ORG_ADMIN", "DEPT_ADMIN"]}>
               <ScheduleDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notices"
+          element={
+            <ProtectedRoute>
+              <NoticeBoard />
             </ProtectedRoute>
           }
         />
