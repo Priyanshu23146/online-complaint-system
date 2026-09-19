@@ -1,5 +1,29 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# Build output
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+!node_modules/**
+!scripts/**
 
-/src/generated/prisma
+# IDE agent/skill folders
+.agents/
+.claude/
+.windsurf/
+
+# Database backups
+*.sql
+
+# Dependencies
+node_modules/
+package-lock.json (optional - if shared)
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
