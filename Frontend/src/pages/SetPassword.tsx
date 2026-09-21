@@ -52,30 +52,30 @@ const SetPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-950 p-4 transition-colors">
+      <div className="bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-xl dark:shadow-lg w-full max-w-md border border-slate-100 dark:border-neutral-800">
         <div className="text-center mb-8">
-          <div className="bg-amber-100 h-14 w-14 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-amber-100 dark:bg-amber-950/50 h-14 w-14 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="h-8 w-8 text-amber-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
             Secure Your Account
           </h2>
-          <p className="text-slate-500 mt-2 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
             For security reasons, you must change your default password before
             accessing the dashboard.
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-5 text-center">
+          <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm mb-5 text-center border border-red-100 dark:border-red-800">
             {error}
           </div>
         )}
 
         <form onSubmit={handleUpdatePassword} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               New Password
             </label>
             <div className="relative">
@@ -83,7 +83,7 @@ const SetPassword: React.FC = () => {
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="Enter new password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -92,7 +92,7 @@ const SetPassword: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Confirm Password
             </label>
             <div className="relative">
@@ -100,7 +100,7 @@ const SetPassword: React.FC = () => {
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

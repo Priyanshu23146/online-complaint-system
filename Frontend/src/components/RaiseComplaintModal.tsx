@@ -27,9 +27,9 @@ const RaiseComplaintModal: React.FC<Props> = ({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-5">
-          <h3 className="text-xl font-bold text-slate-900">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
             Raise a Complaint
           </h3>
           <button onClick={onClose}>
@@ -38,11 +38,11 @@ const RaiseComplaintModal: React.FC<Props> = ({
         </div>
         <form onSubmit={onSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Select Department
             </label>
             <select
-              className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              className="w-full rounded-lg border border-slate-300 dark:border-neutral-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100"
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
               required
@@ -58,13 +58,13 @@ const RaiseComplaintModal: React.FC<Props> = ({
             </select>
           </div>
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Issue Description
             </label>
             <textarea
               required
               rows={3}
-              className="w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full rounded-lg border border-slate-300 dark:border-neutral-700 py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />

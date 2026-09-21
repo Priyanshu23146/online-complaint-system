@@ -1,4 +1,5 @@
 import React from "react";
+import ThemeToggle from "./ThemeToggel";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -24,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   handleLogout,
 }) => {
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full shadow-2xl z-10">
+    <aside className="w-64 bg-neutral-950 text-neutral-300 flex flex-col h-full shadow-2xl z-10">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2 tracking-wide">
           <span className="bg-indigo-600 p-2 rounded-lg shadow-lg">
@@ -38,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {currentUser.role === "SUPER_ADMIN" ? (
           <button
             onClick={() => setActiveTab("superadmin")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "superadmin" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "superadmin" ? "bg-indigo-600 text-white" : "hover:bg-neutral-800 hover:text-white"}`}
           >
             <Globe className="h-5 w-5" /> Client Management
           </button>
@@ -46,32 +47,32 @@ const Sidebar: React.FC<SidebarProps> = ({
           <>
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "dashboard" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "dashboard" ? "bg-indigo-600 text-white" : "hover:bg-neutral-800 hover:text-white"}`}
             >
               <LayoutDashboard className="h-5 w-5" /> Complaints
             </button>
             <button
               onClick={() => setActiveTab("attendance")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "attendance" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "attendance" ? "bg-indigo-600 text-white" : "hover:bg-neutral-800 hover:text-white"}`}
             >
               <CalendarCheck className="h-5 w-5" /> Attendance
             </button>
             <button
               onClick={() => setActiveTab("notices")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "notices" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "notices" ? "bg-indigo-600 text-white" : "hover:bg-neutral-800 hover:text-white"}`}
             >
               <Bell className="h-5 w-5" /> Notice Board
             </button>
             <button
               onClick={() => setActiveTab("vault")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "vault" ? "bg-indigo-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === "vault" ? "bg-indigo-600 text-white" : "hover:bg-neutral-800 hover:text-white"}`}
             >
               <BookOpen className="h-5 w-5" /> Academic Vault
             </button>
             {currentUser.role === "ORG_ADMIN" && (
               <button
                 onClick={() => setActiveTab("admin")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mt-4 border border-indigo-500/30 ${activeTab === "admin" ? "bg-indigo-700 text-white" : "text-indigo-400 hover:bg-slate-800 hover:text-white"}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mt-4 border border-indigo-500/30 ${activeTab === "admin" ? "bg-indigo-700 text-white" : "text-indigo-400 hover:bg-neutral-800 hover:text-white"}`}
               >
                 <ShieldCheck className="h-5 w-5" /> Admin Controls
               </button>
@@ -80,10 +81,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-neutral-800">
+        <div className="flex justify-end mb-3">
+          <ThemeToggle />
+        </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-red-600 hover:text-white rounded-lg transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-red-600 hover:text-white rounded-lg transition-colors"
         >
           <LogOut className="h-5 w-5" /> Logout
         </button>

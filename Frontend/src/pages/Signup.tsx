@@ -57,23 +57,23 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-950 p-4 transition-colors">
+      <div className="bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-xl dark:shadow-lg w-full max-w-lg border border-slate-100 dark:border-neutral-800">
         {/* Header Section */}
         <div className="text-center mb-8">
           <div className="bg-indigo-600 h-14 w-14 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
             <Rocket className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
             Join the Campus Portal
           </h2>
-          <p className="text-slate-500 mt-2 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
             Register to raise, track, and upvote issues instantly.
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-5 border border-red-100 text-center">
+          <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm mb-5 border border-red-100 dark:border-red-800 text-center">
             {error}
           </div>
         )}
@@ -81,11 +81,11 @@ const Signup: React.FC = () => {
         <form onSubmit={handleSignup} className="space-y-4">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
               Full Name
             </label>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                 Organization Code
               </label>
               <div className="relative">
@@ -93,7 +93,7 @@ const Signup: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   placeholder="e.g. aitd-kanpur"
                   value={organizationCode}
                   onChange={(e) => setOrganizationCode(e.target.value)}
@@ -105,7 +105,7 @@ const Signup: React.FC = () => {
               <input
                 type="text"
                 required
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                 placeholder="Priyanshu Kumar"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -116,7 +116,7 @@ const Signup: React.FC = () => {
           {/* Email & Password (Grid Layout) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                 Email Address
               </label>
               <div className="relative">
@@ -124,7 +124,7 @@ const Signup: React.FC = () => {
                 <input
                   type="email"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   placeholder="student@aitd.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -133,7 +133,7 @@ const Signup: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -142,7 +142,7 @@ const Signup: React.FC = () => {
                   type="password"
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -152,22 +152,22 @@ const Signup: React.FC = () => {
           </div>
 
           {/* Academic Details Section */}
-          <div className="pt-4 mt-2 border-t border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+          <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">
               Academic Details
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Roll No */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Roll Number
                 </label>
                 <div className="relative">
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 text-sm outline-none"
                     placeholder="e.g. 23001"
                     value={rollNo}
                     onChange={(e) => setRollNo(e.target.value)}
@@ -177,13 +177,13 @@ const Signup: React.FC = () => {
 
               {/* Branch */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Branch
                 </label>
                 <div className="relative">
                   <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
-                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100"
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
                   >
@@ -199,13 +199,13 @@ const Signup: React.FC = () => {
 
               {/* Year */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Year
                 </label>
                 <div className="relative">
                   <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
-                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 dark:border-neutral-700 focus:ring-2 focus:ring-indigo-500 text-sm outline-none appearance-none bg-white dark:bg-neutral-800 text-slate-900 dark:text-neutral-100"
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
                   >
@@ -228,7 +228,7 @@ const Signup: React.FC = () => {
           </button>
         </form>
 
-        <p className="text-center text-slate-500 mt-6 text-sm">
+        <p className="text-center text-slate-500 dark:text-slate-400 mt-6 text-sm">
           Already have an account?{" "}
           <Link
             to="/login"

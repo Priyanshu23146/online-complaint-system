@@ -292,7 +292,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-neutral-950 overflow-hidden transition-colors">
       <Sidebar
         currentUser={currentUser}
         activeTab={activeTab}
@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
 
         {activeTab === "attendance" && (
           <div className="max-w-5xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <CalendarCheck className="h-7 w-7 text-indigo-600" /> Attendance
               Overview
             </h2>
@@ -330,7 +330,7 @@ const Dashboard: React.FC = () => {
 
         {activeTab === "notices" && (
           <div className="max-w-4xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Bell className="h-7 w-7 text-indigo-600" /> Notice Board
             </h2>
           </div>
@@ -338,7 +338,7 @@ const Dashboard: React.FC = () => {
 
         {activeTab === "vault" && (
           <div className="max-w-5xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <BookOpen className="h-7 w-7 text-indigo-600" /> Academic Vault
             </h2>
           </div>

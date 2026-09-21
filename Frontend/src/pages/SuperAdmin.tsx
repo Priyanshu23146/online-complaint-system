@@ -41,7 +41,7 @@ const SuperAdminPanel: React.FC<Props> = ({
               key={client.id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition"
             >
-              <div className="bg-slate-900 p-4 flex justify-between items-center">
+              <div className="bg-neutral-950 p-4 flex justify-between items-center">
                 <h3 className="font-bold text-white flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-indigo-400" />{" "}
                   {client.name}

@@ -1,11 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Shield, Zap, BarChart3, MonitorDot, ArrowRight } from "lucide-react";
+import ThemeToggle from "../components/ThemeToggel";
 
 const Landing: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <nav className="flex items-center justify-between px-8 py-4 bg-white shadow-sm">
+    <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 font-sans transition-colors">
+      <nav className="flex items-center justify-between px-8 py-4 bg-white dark:bg-neutral-900 shadow-sm dark:shadow-lg">
         {/* New Apna Desk Logo */}
         <div className="flex items-center gap-2 font-bold text-xl text-indigo-700 tracking-wide">
           <span className="bg-indigo-600 p-1.5 rounded-md shadow-sm">
@@ -13,10 +14,11 @@ const Landing: React.FC = () => {
           </span>
           Apna Desk
         </div>
-        <div className="space-x-4">
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
           <Link
             to="/login"
-            className="text-slate-600 hover:text-indigo-600 font-medium"
+            className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 font-medium"
           >
             Log In
           </Link>
@@ -30,11 +32,11 @@ const Landing: React.FC = () => {
       </nav>
 
       <main className="flex flex-col items-center text-center px-4 pt-24 pb-16">
-        <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight mb-6">
+        <h1 className="text-5xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight mb-6">
           Resolve Issues{" "}
           <span className="text-indigo-600">Faster Together</span>
         </h1>
-        <p className="text-xl text-slate-600 max-w-2xl mb-10">
+        <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mb-10">
           A transparent and efficient online complaint management system. Raise
           issues, track progress, and upvote community complaints to get them
           resolved faster.
@@ -49,7 +51,7 @@ const Landing: React.FC = () => {
           </Link>
           <Link
             to="/login?role=admin"
-            className="flex items-center justify-center gap-2 px-8 py-3 bg-white text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition shadow-sm text-lg font-medium"
+            className="flex items-center justify-center gap-2 px-8 py-3 bg-white dark:bg-neutral-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition shadow-sm text-lg font-medium"
           >
             Login as Admin <Shield className="h-5 w-5" />
           </Link>
@@ -57,38 +59,38 @@ const Landing: React.FC = () => {
       </main>
 
       <section className="max-w-6xl mx-auto px-4 py-16 grid md:grid-cols-3 gap-8">
-        <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-4">
+        <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm dark:shadow-lg border border-slate-100 dark:border-neutral-800">
+          <div className="h-12 w-12 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 rounded-lg flex items-center justify-center mb-4">
             <Zap className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             Fast Resolution
           </h3>
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-slate-300">
             Direct pipeline to administrators ensures your grievances are heard
             and addressed quickly.
           </p>
         </div>
-        <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-4">
+        <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm dark:shadow-lg border border-slate-100 dark:border-neutral-800">
+          <div className="h-12 w-12 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 rounded-lg flex items-center justify-center mb-4">
             <BarChart3 className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             Community Upvotes
           </h3>
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-slate-300">
             Upvote existing complaints to prioritize critical issues without
             creating duplicate tickets.
           </p>
         </div>
-        <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
-          <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-4">
+        <div className="p-6 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm dark:shadow-lg border border-slate-100 dark:border-neutral-800">
+          <div className="h-12 w-12 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 rounded-lg flex items-center justify-center mb-4">
             <Shield className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             Secure &amp; Private
           </h3>
-          <p className="text-slate-600">
+          <p className="text-slate-600 dark:text-slate-300">
             Your data is protected with industry-standard JWT authentication and
             strict validation.
           </p>

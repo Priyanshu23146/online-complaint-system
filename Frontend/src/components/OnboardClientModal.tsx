@@ -48,7 +48,7 @@ const OnboardClientModal: React.FC<Props> = ({
             <h4 className="text-indigo-700 font-bold mb-2 flex items-center justify-center gap-2">
               <CheckCircle className="h-5 w-5" /> Organization Created!
             </h4>
-            <div className="bg-slate-900 p-4 rounded-lg font-mono text-sm text-slate-300 text-left mt-4">
+            <div className="bg-neutral-950 p-4 rounded-lg font-mono text-sm text-neutral-300 text-left mt-4">
               <div>
                 Email:{" "}
                 <span className="text-white">{clientGeneratedCreds.email}</span>
@@ -62,7 +62,7 @@ const OnboardClientModal: React.FC<Props> = ({
             </div>
             <button
               onClick={onClose}
-              className="mt-5 w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition"
+              className="mt-5 w-full py-2 bg-neutral-900 hover:bg-neutral-950 text-white rounded-lg transition"
             >
               Done
             </button>

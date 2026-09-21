@@ -45,7 +45,9 @@ const ComplaintsList: React.FC<Props> = ({
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Campus Issues</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            Campus Issues
+          </h2>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm font-medium"
@@ -63,11 +65,11 @@ const ComplaintsList: React.FC<Props> = ({
             complaints.map((complaint) => (
               <div
                 key={complaint.id}
-                className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition"
+                className="bg-white dark:bg-neutral-900 p-5 rounded-xl shadow-sm dark:shadow-lg border border-slate-100 dark:border-neutral-800 flex flex-col hover:shadow-md transition"
               >
                 <div className="flex items-start justify-between w-full">
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
                       {complaint.title}
                     </h3>
                     <div className="flex items-center gap-3 mt-2 text-sm">
@@ -77,7 +79,7 @@ const ComplaintsList: React.FC<Props> = ({
                           onChange={(e) =>
                             handleStatusChange(complaint.id, e.target.value)
                           }
-                          className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                          className="bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                         >
                           <option value="Pending">Pending</option>
                           <option value="In-Progress">In-Progress</option>
@@ -99,7 +101,7 @@ const ComplaintsList: React.FC<Props> = ({
                   </div>
                   <button
                     onClick={() => handleUpvote(complaint.id)}
-                    className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 transition group"
+                    className="flex flex-col items-center justify-center p-2 rounded-lg bg-slate-50 dark:bg-neutral-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 border border-slate-200 dark:border-neutral-700 hover:border-indigo-200 dark:hover:border-indigo-700 text-slate-600 dark:text-neutral-300 hover:text-indigo-600 dark:hover:text-indigo-300 transition group"
                   >
                     <ThumbsUp className="h-5 w-5 group-hover:-translate-y-1 transition-transform" />
                     <span className="font-bold mt-1">
@@ -108,10 +110,10 @@ const ComplaintsList: React.FC<Props> = ({
                   </button>
                 </div>
 
-                <div className="mt-4 border-t border-slate-100 pt-3">
+                <div className="mt-4 border-t border-slate-100 dark:border-slate-700 pt-3">
                   <button
                     onClick={() => toggleChat(complaint.id)}
-                    className="text-sm font-medium text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 transition"
+                    className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center gap-1.5 transition"
                   >
                     <MessageSquare className="h-4 w-4" />
                     {activeChatId === complaint.id
@@ -121,19 +123,19 @@ const ComplaintsList: React.FC<Props> = ({
                 </div>
 
                 {activeChatId === complaint.id && (
-                  <div className="mt-3 bg-slate-50 rounded-lg p-4 shadow-inner border border-slate-200">
+                  <div className="mt-3 bg-slate-50 dark:bg-neutral-800 rounded-lg p-4 shadow-inner border border-slate-200 dark:border-neutral-700">
                     <div className="max-h-40 overflow-y-auto space-y-2 mb-3 pr-2">
                       {comments.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center italic">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center italic">
                           No comments yet. Start the conversation!
                         </p>
                       ) : (
                         comments.map((msg, idx) => (
                           <div
                             key={idx}
-                            className={`p-2 rounded-md text-sm w-fit max-w-[85%] ${msg.user.name === currentUser.name ? "bg-indigo-100 text-indigo-900 ml-auto" : "bg-white border text-slate-700"}`}
+                            className={`p-2 rounded-md text-sm w-fit max-w-[85%] ${msg.user.name === currentUser.name ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-900 dark:text-indigo-100 ml-auto" : "bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200"}`}
                           >
-                            <span className="block text-[10px] font-bold text-slate-500 mb-1">
+                            <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                               {msg.user.name} (
                               {msg.user.role === "DEPT_ADMIN"
                                 ? "HOD"
@@ -151,7 +153,7 @@ const ComplaintsList: React.FC<Props> = ({
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Type an update or question..."
-                        className="flex-1 text-sm border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 bg-white"
+                        className="flex-1 text-sm border border-slate-300 dark:border-neutral-700 rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 bg-white dark:bg-neutral-900 text-slate-900 dark:text-neutral-100 placeholder:text-slate-400"
                       />
                       <button
                         onClick={() => handleSendComment(complaint.id)}
@@ -168,8 +170,8 @@ const ComplaintsList: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-fit">
-        <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+      <div className="bg-white dark:bg-neutral-900 p-6 rounded-xl shadow-sm dark:shadow-lg border border-slate-100 dark:border-neutral-800 h-fit">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
           🔥 Trending
         </h2>
         <div className="h-64 w-full">

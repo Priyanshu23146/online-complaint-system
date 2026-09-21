@@ -73,7 +73,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <nav className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
+      <nav className="bg-neutral-950 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <h1 className="text-xl font-bold flex items-center gap-2">
           <ShieldAlert className="h-6 w-6 text-amber-500" /> Admin Control Panel
         </h1>
