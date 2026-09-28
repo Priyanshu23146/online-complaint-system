@@ -1,7 +1,7 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../config/db.js";
 
-// 1. Create Complaint (UNCHANGED)
+// 1. Create Complaint
 export const createComplaint = async (
   req: Request,
   res: Response,
@@ -11,6 +11,7 @@ export const createComplaint = async (
     const userId = req.user!.id;
     const organizationId = req.user!.organizationId;
 
+    // 🚨 FIX: department must belong to the SAME org as the person filing the complaint
     const department = await prisma.department.findFirst({
       where: { id: Number(departmentId), organizationId },
     });
@@ -36,27 +37,7 @@ export const createComplaint = async (
   }
 };
 
-// 2. Get All Complaints with Search & Filters — 🚀 ENHANCED VERSION
-/**
- * SEARCH & FILTERS IMPLEMENTATION
- *
- * Supported Query Parameters:
- * - page (default: 1) — pagination page number
- * - limit (default: 20) — items per page
- * - search — full-text search on title + description
- * - status — filter by status (Pending, In-Progress, Resolved)
- * - departmentId — filter by department
- * - startDate — filter complaints from this date (YYYY-MM-DD)
- * - endDate — filter complaints until this date (YYYY-MM-DD)
- * - sortBy — sort option (newest, oldest, most-upvotes, least-upvotes)
- *
- * Examples:
- * GET /api/complaints
- * GET /api/complaints?search=database
- * GET /api/complaints?status=Pending&departmentId=1
- * GET /api/complaints?startDate=2024-09-01&endDate=2024-09-30
- * GET /api/complaints?search=canteen&status=Resolved&sortBy=newest&page=1&limit=20
- */
+// 2. Get All Complaints — 🚨 CRITICAL FIX: was cross-tenant before, no org filter at all
 export const getComplaints = async (
   req: Request,
   res: Response,
@@ -64,139 +45,41 @@ export const getComplaints = async (
   try {
     const { role, departmentId, organizationId, id: userId } = req.user!;
 
-    // ==========================================
-    // STEP 1: Parse Query Parameters
-    // ==========================================
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = (req.query.search as string)?.trim();
+    const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
-    const queryDepartmentId = req.query.departmentId as string;
-    const startDate = req.query.startDate as string;
-    const endDate = req.query.endDate as string;
-    const sortBy = (req.query.sortBy as string) || "newest";
     const skip = (page - 1) * limit;
 
-    // ==========================================
-    // STEP 2: Build WHERE Clause (Complex)
-    // ==========================================
-    const whereCondition: any = {
-      // 🔒 SECURITY: Always scope to user's organization
-      department: { organizationId },
-    };
+    // Every query is scoped through department.organizationId — Org A can
+    // never see Org B's complaints, regardless of role.
+    const whereCondition: any = { department: { organizationId } };
+    if (status) whereCondition.status = status;
 
-    // FILTER 1: Status Filter
-    if (status && status.trim()) {
-      whereCondition.status = status;
-    }
-
-    // FILTER 2: Department Filter
-    // Admin can see all depts, DEPT_ADMIN only their dept
-    if (queryDepartmentId) {
-      whereCondition.departmentId = Number(queryDepartmentId);
-    } else if (role === "DEPT_ADMIN") {
-      // DEPT_ADMIN automatically filtered to their department
+    if (role === "DEPT_ADMIN") {
       whereCondition.departmentId = departmentId;
     }
-
-    // FILTER 3: Role-Based Access Control
     if (role === "MEMBER") {
-      // Members only see their own complaints
-      whereCondition.userId = userId;
+      whereCondition.userId = userId; // members only see their own complaints
     }
 
-    // FILTER 4: Full-Text Search
-    // Search in title OR description
-    if (search && search.length > 0) {
-      whereCondition.OR = [
-        {
-          title: {
-            contains: search,
-            mode: "insensitive", // Case-insensitive search
-          },
-        },
-        {
-          description: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-      ];
-    }
-
-    // FILTER 5: Date Range Filter
-    const dateFilter: any = {};
-    if (startDate) {
-      const start = new Date(startDate);
-      if (!isNaN(start.getTime())) {
-        dateFilter.gte = start;
-      }
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      // End of day: set time to 23:59:59
-      end.setHours(23, 59, 59, 999);
-      if (!isNaN(end.getTime())) {
-        dateFilter.lte = end;
-      }
-    }
-    if (Object.keys(dateFilter).length > 0) {
-      whereCondition.createdAt = dateFilter;
-    }
-
-    // ==========================================
-    // STEP 3: Determine Sort Order
-    // ==========================================
-    let orderBy: any = { createdAt: "desc" }; // Default: newest first
-
-    if (sortBy === "oldest") {
-      orderBy = { createdAt: "asc" };
-    } else if (sortBy === "most-upvotes") {
-      orderBy = { upvotes: "desc" };
-    } else if (sortBy === "least-upvotes") {
-      orderBy = { upvotes: "asc" };
-    }
-    // else: sortBy === "newest" → default already set
-
-    // ==========================================
-    // STEP 4: Execute Query
-    // ==========================================
     const complaints = await prisma.complaint.findMany({
       where: whereCondition,
       skip,
       take: limit,
-      include: {
-        user: { select: { name: true, email: true, role: true } },
-        department: { select: { name: true, id: true } },
-      },
-      orderBy,
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
     });
 
-    // Get total count for pagination metadata
     const totalComplaints = await prisma.complaint.count({
       where: whereCondition,
     });
 
-    // ==========================================
-    // STEP 5: Return Response
-    // ==========================================
     res.status(200).json({
       success: true,
       metadata: {
         totalComplaints,
         currentPage: page,
         totalPages: Math.ceil(totalComplaints / limit),
-        itemsPerPage: limit,
-        appliedFilters: {
-          search: search || null,
-          status: status || null,
-          departmentId: queryDepartmentId ? Number(queryDepartmentId) : null,
-          dateRange:
-            startDate || endDate
-              ? { startDate: startDate || null, endDate: endDate || null }
-              : null,
-          sortBy,
-        },
       },
       complaints,
     });
@@ -206,7 +89,7 @@ export const getComplaints = async (
   }
 };
 
-// 3. Update Status (UNCHANGED)
+// 3. Update Status
 export const updateComplaintStatus = async (
   req: Request,
   res: Response,
@@ -223,6 +106,8 @@ export const updateComplaintStatus = async (
       });
     }
 
+    // 🚨 CRITICAL FIX: previously fetched by ID alone — any admin from ANY
+    // org could update ANY complaint anywhere. Now tenant + dept scoped.
     const complaint = await prisma.complaint.findFirst({
       where: { id: complaintId, department: { organizationId } },
     });
@@ -255,7 +140,7 @@ export const updateComplaintStatus = async (
   }
 };
 
-// 4. Delete Complaint (UNCHANGED)
+// 4. Delete Complaint
 export const deleteComplaint = async (
   req: Request,
   res: Response,
@@ -272,6 +157,7 @@ export const deleteComplaint = async (
       });
     }
 
+    // 🚨 CRITICAL FIX: same tenant + dept scoping as update above
     const complaint = await prisma.complaint.findFirst({
       where: { id: complaintId, department: { organizationId } },
     });

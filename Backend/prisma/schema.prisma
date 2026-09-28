@@ -87,6 +87,11 @@ model Complaint {
   status       String     @default("Pending")
   upvotes      Int        @default(0)
   createdAt    DateTime   @default(now())
+  @@index([status])
+  @@index([departmentId])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([status, departmentId])
   
   userId       Int
   departmentId Int
