@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 
 /**
- * FilterPanel Component
+ * * FilterPanel Component
  *
  * Features:
  * - Status filter (Pending, In-Progress, Resolved)
