@@ -39,6 +39,10 @@ export default function SearchBar({
 }: SearchBarProps) {
   const [inputValue, setInputValue] = useState(value);
 
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   /**
    * Debouncing Logic:
    *
@@ -55,6 +59,8 @@ export default function SearchBar({
    *   Result: Only 1 API call! 🚀
    */
   useEffect(() => {
+    if (inputValue === value) return;
+
     // Set up timer
     const timer = setTimeout(() => {
       onChange(inputValue);
@@ -62,7 +68,7 @@ export default function SearchBar({
 
     // Cleanup: if user types again before timer fires, cancel previous timer
     return () => clearTimeout(timer);
-  }, [inputValue, onChange]);
+  }, [inputValue, onChange, value]);
 
   // Update local input immediately for responsive UI
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

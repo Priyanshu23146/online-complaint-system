@@ -24,6 +24,7 @@ interface Props {
   newComment: string;
   setNewComment: (val: string) => void;
   handleSendComment: (id: number) => void;
+  emptyState?: React.ReactNode;
 }
 
 const ComplaintsList: React.FC<Props> = ({
@@ -40,6 +41,7 @@ const ComplaintsList: React.FC<Props> = ({
   newComment,
   setNewComment,
   handleSendComment,
+  emptyState,
 }) => {
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -60,7 +62,7 @@ const ComplaintsList: React.FC<Props> = ({
           {loading ? (
             <p className="animate-pulse">Loading...</p>
           ) : complaints.length === 0 ? (
-            <p>No complaints found.</p>
+            (emptyState ?? <p>No complaints found.</p>)
           ) : (
             complaints.map((complaint) => (
               <div

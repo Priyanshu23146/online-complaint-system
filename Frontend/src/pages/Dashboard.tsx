@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { CalendarCheck, Bell, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
@@ -9,6 +9,10 @@ import ComplaintsList from "../components/ComplaintsList";
 import RaiseComplaintModal from "../components/RaiseComplaintModal";
 import AssignAdminModal from "../components/AssignAdminModal";
 import OnboardClientModal from "../components/OnboardClientModal";
+import SearchBar from "../components/SearchBar";
+import FilterPanel from "../components/FilterPanel";
+import SortDropdown from "../components/SortDropdown";
+import Pagination from "../components/Pagination";
 
 const Dashboard: React.FC = () => {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -24,6 +28,25 @@ const Dashboard: React.FC = () => {
         return "dashboard";
     }
   };
+
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    departmentId: "",
+    startDate: "",
+    endDate: "",
+    sortBy: "newest",
+    page: 1,
+    limit: 20,
+  });
+
+  const [pagination, setPagination] = useState({
+    totalComplaints: 0,
+    totalPages: 0,
+    currentPage: 1,
+  });
+
+  const [filterLoading, setFilterLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState(getDefaultTab());
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -64,12 +87,52 @@ const Dashboard: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const compRes = await API.get("/complaints");
-        if (compRes.data && compRes.data.complaints)
-          setComplaints(compRes.data.complaints);
+    let isCurrentRequest = true;
 
+    const fetchComplaints = async () => {
+      setFilterLoading(true);
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== "") queryParams.set(key, String(value));
+      });
+
+      try {
+        const { data } = await API.get(`/complaints?${queryParams.toString()}`);
+        if (!isCurrentRequest) return;
+
+        setComplaints(data.complaints ?? []);
+        if (data.metadata) {
+          setPagination({
+            totalComplaints: data.metadata.totalComplaints,
+            totalPages: data.metadata.totalPages,
+            currentPage: data.metadata.currentPage,
+          });
+        } else {
+          setPagination({ totalComplaints: 0, totalPages: 0, currentPage: 1 });
+        }
+      } catch (error) {
+        if (isCurrentRequest) {
+          console.error("Error fetching complaints:", error);
+          setComplaints([]);
+          setPagination({ totalComplaints: 0, totalPages: 0, currentPage: 1 });
+        }
+      } finally {
+        if (isCurrentRequest) {
+          setFilterLoading(false);
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchComplaints();
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [filters]);
+
+  useEffect(() => {
+    const fetchDepartmentsAndClients = async () => {
+      try {
         const deptRes = await API.get("/departments");
         if (deptRes.data && deptRes.data.departments) {
           setDepartments(deptRes.data.departments);
@@ -83,13 +146,52 @@ const Dashboard: React.FC = () => {
             setClients(clientRes.data.organizations);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching dashboard data:", error);
       }
     };
-    fetchData();
+
+    fetchDepartmentsAndClients();
   }, [currentUser.role]);
+
+  const handleFilterChange = useCallback((name: string, value: string) => {
+    const filterNames = [
+      "search",
+      "status",
+      "departmentId",
+      "startDate",
+      "endDate",
+      "sortBy",
+    ] as const;
+    if (!filterNames.includes(name as (typeof filterNames)[number])) return;
+
+    setFilters((previousFilters) => ({
+      ...previousFilters,
+      [name as (typeof filterNames)[number]]: value,
+      page: 1,
+    }));
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (value: string) => handleFilterChange("search", value),
+    [handleFilterChange],
+  );
+
+  const handleClearAllFilters = () => {
+    setFilters({
+      search: "",
+      status: "",
+      departmentId: "",
+      startDate: "",
+      endDate: "",
+      sortBy: "newest",
+      page: 1,
+      limit: 20,
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    setFilters((previousFilters) => ({ ...previousFilters, page }));
+  };
 
   const handleCreateComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,21 +404,80 @@ const Dashboard: React.FC = () => {
 
       <main className="flex-1 overflow-y-auto p-8">
         {activeTab === "dashboard" && (
-          <ComplaintsList
-            currentUser={currentUser}
-            complaints={complaints}
-            loading={loading}
-            chartData={chartData}
-            setIsModalOpen={setIsModalOpen}
-            handleStatusChange={handleStatusChange}
-            handleUpvote={handleUpvote}
-            toggleChat={toggleChat}
-            activeChatId={activeChatId}
-            comments={comments}
-            newComment={newComment}
-            setNewComment={setNewComment}
-            handleSendComment={handleSendComment}
-          />
+          <div className="space-y-6">
+            <SearchBar
+              value={filters.search}
+              onChange={handleSearchChange}
+              placeholder="Search complaints by title or description..."
+              isLoading={filterLoading}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <FilterPanel
+                  filters={{
+                    status: filters.status,
+                    departmentId: filters.departmentId,
+                    startDate: filters.startDate,
+                    endDate: filters.endDate,
+                  }}
+                  onFilterChange={handleFilterChange}
+                  onClearAll={handleClearAllFilters}
+                  departments={departments}
+                  isLoading={filterLoading}
+                />
+              </div>
+
+              <div className="flex items-end">
+                <SortDropdown
+                  value={filters.sortBy}
+                  onChange={(value) => handleFilterChange("sortBy", value)}
+                />
+              </div>
+            </div>
+
+            <ComplaintsList
+              currentUser={currentUser}
+              complaints={complaints}
+              loading={loading || filterLoading}
+              chartData={chartData}
+              setIsModalOpen={setIsModalOpen}
+              handleStatusChange={handleStatusChange}
+              handleUpvote={handleUpvote}
+              toggleChat={toggleChat}
+              activeChatId={activeChatId}
+              comments={comments}
+              newComment={newComment}
+              setNewComment={setNewComment}
+              handleSendComment={handleSendComment}
+              emptyState={
+                !filterLoading && complaints.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400 text-lg mb-3">
+                      No complaints found matching your filters
+                    </p>
+                    <button
+                      onClick={handleClearAllFilters}
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                ) : undefined
+              }
+            />
+
+            {pagination.totalComplaints > 0 && (
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalComplaints}
+                itemsPerPage={filters.limit}
+                onPageChange={handlePageChange}
+                isLoading={filterLoading}
+              />
+            )}
+          </div>
         )}
 
         {activeTab === "attendance" && (
