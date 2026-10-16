@@ -1,5 +1,9 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../config/db.js";
+import {
+  sendComplaintNotification,
+  sendStatusUpdateEmail,
+} from "../services/email.service.js";
 
 // 1. Create Complaint (UNCHANGED)
 export const createComplaint = async (
@@ -21,9 +25,14 @@ export const createComplaint = async (
       });
     }
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     const newComplaint = await prisma.complaint.create({
       data: { title, description, userId, departmentId: department.id },
     });
+
+    if (user?.email) {
+      await sendComplaintNotification(user.email, title, newComplaint.id);
+    }
 
     res.status(201).json({
       success: true,
@@ -225,6 +234,7 @@ export const updateComplaintStatus = async (
 
     const complaint = await prisma.complaint.findFirst({
       where: { id: complaintId, department: { organizationId } },
+      include: { user: { select: { email: true } } },
     });
     if (!complaint) {
       return res.status(404).json({
@@ -243,6 +253,14 @@ export const updateComplaintStatus = async (
       where: { id: complaintId },
       data: { status },
     });
+
+    if (complaint.status !== status) {
+      await sendStatusUpdateEmail(
+        complaint.user.email,
+        complaint.title,
+        status,
+      );
+    }
 
     res.status(200).json({
       success: true,
