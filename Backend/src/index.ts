@@ -14,6 +14,7 @@ import departmentRoutes from "./routes/department.routes.js";
 import complaintRoutes from "./routes/complaint.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import superAdminRoutes from "./routes/superadmin.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 // 🚨 FIX: fail fast at boot instead of silently falling back to "supersecret"
 if (!process.env.JWT_SECRET) {
@@ -27,6 +28,7 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use("/api/analytics", analyticsRoutes);
 
 // 🚨 FIX: basic brute-force protection on the most sensitive endpoints
 const authLimiter = rateLimit({
